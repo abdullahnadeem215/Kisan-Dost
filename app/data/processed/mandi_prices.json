@@ -1,0 +1,134 @@
+[
+  {
+    "mandi_name": "Multan Mandi",
+    "district": "Multan",
+    "commodity": "Wheat",
+    "variety": "Akbar-19",
+    "min_price": 3850,
+    "max_price": 4050,
+    "modal_price": 3950,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Multan Mandi",
+    "district": "Multan",
+    "commodity": "Cotton",
+    "variety": "Phutti FAQ",
+    "min_price": 7500,
+    "max_price": 8400,
+    "modal_price": 8000,
+    "price_date": "2026-09-05",
+    "price_trend": "Rising"
+  },
+  {
+    "mandi_name": "Faisalabad Mandi",
+    "district": "Faisalabad",
+    "commodity": "Wheat",
+    "variety": "Akbar-19",
+    "min_price": 3900,
+    "max_price": 4100,
+    "modal_price": 4000,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Faisalabad Mandi",
+    "district": "Faisalabad",
+    "commodity": "Maize",
+    "variety": "Hybrid Grain",
+    "min_price": 2200,
+    "max_price": 2450,
+    "modal_price": 2350,
+    "price_date": "2026-09-05",
+    "price_trend": "Falling"
+  },
+  {
+    "mandi_name": "Lahore Badami Bagh",
+    "district": "Lahore",
+    "commodity": "Rice (Basmati)",
+    "variety": "Super Basmati 1121",
+    "min_price": 4800,
+    "max_price": 5400,
+    "modal_price": 5100,
+    "price_date": "2026-09-05",
+    "price_trend": "Rising"
+  },
+  {
+    "mandi_name": "Lahore Badami Bagh",
+    "district": "Lahore",
+    "commodity": "Potato",
+    "variety": "Mozika Red",
+    "min_price": 1800,
+    "max_price": 2300,
+    "modal_price": 2050,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Sargodha Grain Market",
+    "district": "Sargodha",
+    "commodity": "Citrus (Kinnow)",
+    "variety": "Export Grade",
+    "min_price": 2800,
+    "max_price": 3600,
+    "modal_price": 3200,
+    "price_date": "2026-09-05",
+    "price_trend": "Rising"
+  },
+  {
+    "mandi_name": "Sahiwal Mandi",
+    "district": "Sahiwal",
+    "commodity": "Maize",
+    "variety": "Hybrid Silage/Grain",
+    "min_price": 2250,
+    "max_price": 2480,
+    "modal_price": 2380,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Rahim Yar Khan Market",
+    "district": "Rahim Yar Khan",
+    "commodity": "Cotton",
+    "variety": "Phutti Grade A",
+    "min_price": 7800,
+    "max_price": 8550,
+    "modal_price": 8200,
+    "price_date": "2026-09-05",
+    "price_trend": "Rising"
+  },
+  {
+    "mandi_name": "Bahawalpur Mandi",
+    "district": "Bahawalpur",
+    "commodity": "Wheat",
+    "variety": "Dilkash",
+    "min_price": 3820,
+    "max_price": 4020,
+    "modal_price": 3920,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Rawalpindi Ganj Mandi",
+    "district": "Rawalpindi",
+    "commodity": "Wheat",
+    "variety": "Standard",
+    "min_price": 4000,
+    "max_price": 4200,
+    "modal_price": 4120,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  },
+  {
+    "mandi_name": "Peshawar Mandi",
+    "district": "Peshawar",
+    "commodity": "Maize",
+    "variety": "Local Grain",
+    "min_price": 2400,
+    "max_price": 2650,
+    "modal_price": 2520,
+    "price_date": "2026-09-05",
+    "price_trend": "Stable"
+  }
+]

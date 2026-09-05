@@ -1,0 +1,66 @@
+[
+  {
+    "fertilizer_id": "FERT-UREA",
+    "name": "Urea (Sonam / FFC / Engro)",
+    "nutrient_composition": {
+      "N": 46.0
+    },
+    "standard_bag_weight_kg": 50.0,
+    "current_price_pkr": 4650.0,
+    "govt_subsidized": true,
+    "subsidy_pkr_per_bag": 500.0,
+    "application_method": "Top-dressing / Broadcast before irrigation"
+  },
+  {
+    "fertilizer_id": "FERT-DAP",
+    "name": "DAP (Di-Ammonium Phosphate)",
+    "nutrient_composition": {
+      "N": 18.0,
+      "P2O5": 46.0
+    },
+    "standard_bag_weight_kg": 50.0,
+    "current_price_pkr": 12800.0,
+    "govt_subsidized": true,
+    "subsidy_pkr_per_bag": 1000.0,
+    "application_method": "Basal application at land preparation / sowing"
+  },
+  {
+    "fertilizer_id": "FERT-SOP",
+    "name": "SOP (Sulphate of Potash)",
+    "nutrient_composition": {
+      "K2O": 50.0,
+      "S": 18.0
+    },
+    "standard_bag_weight_kg": 50.0,
+    "current_price_pkr": 14500.0,
+    "govt_subsidized": false,
+    "subsidy_pkr_per_bag": 0.0,
+    "application_method": "Fertigation or soil application at flowering/tuber bulking"
+  },
+  {
+    "fertilizer_id": "FERT-NP",
+    "name": "Nitre Phosphate (NP 22-20)",
+    "nutrient_composition": {
+      "N": 22.0,
+      "P2O5": 20.0
+    },
+    "standard_bag_weight_kg": 50.0,
+    "current_price_pkr": 8900.0,
+    "govt_subsidized": true,
+    "subsidy_pkr_per_bag": 400.0,
+    "application_method": "Basal application or 1st irrigation split"
+  },
+  {
+    "fertilizer_id": "FERT-ZINC",
+    "name": "Zinc Sulphate (33% Monohydrate)",
+    "nutrient_composition": {
+      "Zn": 33.0,
+      "S": 15.0
+    },
+    "standard_bag_weight_kg": 10.0,
+    "current_price_pkr": 2400.0,
+    "govt_subsidized": false,
+    "subsidy_pkr_per_bag": 0.0,
+    "application_method": "Soil application in rice/maize standing crop"
+  }
+]

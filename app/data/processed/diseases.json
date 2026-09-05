@@ -1,0 +1,95 @@
+[
+  {
+    "disease_id": "DIS-WHEAT-RUST",
+    "crop_name": "Wheat",
+    "disease_name": "Yellow Stripe Rust (Puccinia striiformis)",
+    "causal_agent": "Fungal",
+    "symptoms": [
+      "Bright yellow linear pustules on leaves",
+      "Yellow powder on fingers when touching leaf",
+      "Premature drying of leaf tips"
+    ],
+    "favorable_conditions": "Cool temp (10-15\u00b0C), high humidity, dew on leaves in Jan-Feb",
+    "preventative_measures": [
+      "Use resistant seed varieties like Akbar-19 or Dilkash",
+      "Avoid late sowing"
+    ],
+    "organic_control": "Foliar spray of fermented neem leaf extract or sour butter-milk mixture",
+    "chemical_control": "Spray Nativo (Tebuconazole + Trifloxystrobin) or Tilt (Propiconazole)",
+    "dosage_per_acre": "Nativo @ 65g/acre or Tilt @ 100ml/acre in 100L water"
+  },
+  {
+    "disease_id": "DIS-COTTON-PBW",
+    "crop_name": "Cotton",
+    "disease_name": "Pink Bollworm (Pectinophora gossypiella)",
+    "causal_agent": "Insect Pest",
+    "symptoms": [
+      "Rosetted flowers (petals tied together)",
+      "Entry holes in bolls sealed with frass",
+      "Stained lint and damaged seeds inside boll"
+    ],
+    "favorable_conditions": "High temperature with intermittent humidity, mid-to-late Kharif season",
+    "preventative_measures": [
+      "Install PBW Pheromone traps @ 5/acre",
+      "Maintain PBW refuge non-Bt border"
+    ],
+    "organic_control": "Release Trichogramma egg parasitoids @ 40 cards/acre",
+    "chemical_control": "Spray Gamma-Cyhalothrin or Spinetoram or Triazophos",
+    "dosage_per_acre": "Spinetoram 120SC @ 80ml/acre or Triazophos 40EC @ 500ml/acre"
+  },
+  {
+    "disease_id": "DIS-RICE-BLAST",
+    "crop_name": "Rice (Basmati)",
+    "disease_name": "Rice Blast (Pyricularia oryzae)",
+    "causal_agent": "Fungal",
+    "symptoms": [
+      "Diamond/spindle-shaped lesions with gray centers on leaves",
+      "Blackening of neck node causing head rot"
+    ],
+    "favorable_conditions": "High atmospheric humidity (>90%), night temp 20-25\u00b0C, excessive Nitrogen application",
+    "preventative_measures": [
+      "Balanced NPK application",
+      "Seed treatment with Tricyclazole"
+    ],
+    "organic_control": "Spray Garlic extract + Pseudomonas fluorescens biocontrol",
+    "chemical_control": "Spray Tricyclazole 75WP (Beam) or Kasugamycin",
+    "dosage_per_acre": "Tricyclazole 75WP @ 120g/acre in 100L water"
+  },
+  {
+    "disease_id": "DIS-POTATO-BLIGHT",
+    "crop_name": "Potato",
+    "disease_name": "Late Blight (Phytophthora infestans)",
+    "causal_agent": "Oomycete / Fungal-like",
+    "symptoms": [
+      "Water-soaked dark lesions on leaf tips",
+      "White mildew growth on lower leaf surface under wet weather",
+      "Rapid wilting of canopy"
+    ],
+    "favorable_conditions": "Foggy humid weather with rain, temp between 12\u00b0C and 22\u00b0C",
+    "preventative_measures": [
+      "Plant disease-free certified tubers",
+      "Prophylactic Mancozeb spray"
+    ],
+    "organic_control": "Copper Oxychloride spray + Trichoderma harzianum soil treatment",
+    "chemical_control": "Spray Cymoxanil + Mancozeb (Curzate M8) or Dimethomorph",
+    "dosage_per_acre": "Curzate M8 @ 250g/acre in 100L water"
+  },
+  {
+    "disease_id": "DIS-CITRUS-CANKER",
+    "crop_name": "Citrus (Kinnow)",
+    "disease_name": "Citrus Canker (Xanthomonas citri)",
+    "causal_agent": "Bacterial",
+    "symptoms": [
+      "Raised corky brown lesions surrounded by yellow halo on leaves and fruits",
+      "Fruit drop and blemishes"
+    ],
+    "favorable_conditions": "Rainy humid weather with wind spreading bacterial inoculum",
+    "preventative_measures": [
+      "Prune affected branches after harvest",
+      "Windbreak shelterbelts around orchard"
+    ],
+    "organic_control": "Foliar spray of Copper Hydroxide / Bordeaux Mixture (1%)",
+    "chemical_control": "Spray Copper Oxychloride + Streptomycin sulphate",
+    "dosage_per_acre": "Copper Oxychloride @ 300g + Streptomycin @ 15g per 100L water"
+  }
+]

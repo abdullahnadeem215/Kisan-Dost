@@ -1,0 +1,276 @@
+[
+  {
+    "crop_name": "Wheat",
+    "variety": "Akbar-19",
+    "season": "Rabi",
+    "sowing_window": "Nov 01 - Nov 30",
+    "growth_duration_days": 140,
+    "water_requirement_mm": 350.0,
+    "optimal_temp_min_c": 10.0,
+    "optimal_temp_max_c": 25.0,
+    "avg_yield_maunds_per_acre": 38.0,
+    "potential_yield_maunds_per_acre": 60.0,
+    "recommended_npk_kg_per_acre": "50-25-0",
+    "stages": [
+      {
+        "stage_name": "Crown Root Initiation",
+        "duration_days": 21,
+        "key_tasks": [
+          "First irrigation",
+          "Apply 1st split Urea"
+        ]
+      },
+      {
+        "stage_name": "Tillering & Jointing",
+        "duration_days": 40,
+        "key_tasks": [
+          "Weedicide application",
+          "Second irrigation"
+        ]
+      },
+      {
+        "stage_name": "Booting & Heading",
+        "duration_days": 30,
+        "key_tasks": [
+          "Third irrigation",
+          "Monitor for Rust disease"
+        ]
+      },
+      {
+        "stage_name": "Grain Filling & Maturity",
+        "duration_days": 49,
+        "key_tasks": [
+          "Final irrigation",
+          "Harvesting prep"
+        ]
+      }
+    ]
+  },
+  {
+    "crop_name": "Cotton",
+    "variety": "FH-142",
+    "season": "Kharif",
+    "sowing_window": "Apr 15 - May 31",
+    "growth_duration_days": 165,
+    "water_requirement_mm": 700.0,
+    "optimal_temp_min_c": 22.0,
+    "optimal_temp_max_c": 40.0,
+    "avg_yield_maunds_per_acre": 22.0,
+    "potential_yield_maunds_per_acre": 40.0,
+    "recommended_npk_kg_per_acre": "60-30-25",
+    "stages": [
+      {
+        "stage_name": "Germination & Seedling",
+        "duration_days": 25,
+        "key_tasks": [
+          "Thinning",
+          "First weeding"
+        ]
+      },
+      {
+        "stage_name": "Square & Flowering",
+        "duration_days": 45,
+        "key_tasks": [
+          "Nitrogen top dressing",
+          "Pest monitoring (Whitefly/Thrips)"
+        ]
+      },
+      {
+        "stage_name": "Boll Formation",
+        "duration_days": 55,
+        "key_tasks": [
+          "Potash spray",
+          "PBW (Pink Bollworm) traps management"
+        ]
+      },
+      {
+        "stage_name": "Boll Opening & Picking",
+        "duration_days": 40,
+        "key_tasks": [
+          "Stop irrigation",
+          "Clean picking"
+        ]
+      }
+    ]
+  },
+  {
+    "crop_name": "Rice (Basmati)",
+    "variety": "Super Basmati / PK-1121",
+    "season": "Kharif",
+    "sowing_window": "Jun 01 - Jul 15 (Transplanting)",
+    "growth_duration_days": 125,
+    "water_requirement_mm": 1200.0,
+    "optimal_temp_min_c": 20.0,
+    "optimal_temp_max_c": 35.0,
+    "avg_yield_maunds_per_acre": 35.0,
+    "potential_yield_maunds_per_acre": 55.0,
+    "recommended_npk_kg_per_acre": "46-23-20",
+    "stages": [
+      {
+        "stage_name": "Nursery Raising",
+        "duration_days": 25,
+        "key_tasks": [
+          "Seed treatment",
+          "Nursery care"
+        ]
+      },
+      {
+        "stage_name": "Transplanting & Vegetative",
+        "duration_days": 40,
+        "key_tasks": [
+          "Standing water maintenance",
+          "Zinc Sulphate application"
+        ]
+      },
+      {
+        "stage_name": "Panicle Initiation & Heading",
+        "duration_days": 35,
+        "key_tasks": [
+          "Blast disease preventive spray",
+          "Urea split"
+        ]
+      },
+      {
+        "stage_name": "Ripening & Harvest",
+        "duration_days": 25,
+        "key_tasks": [
+          "Drain field 10 days before harvest",
+          "Combine harvesting"
+        ]
+      }
+    ]
+  },
+  {
+    "crop_name": "Sugarcane",
+    "variety": "CPF-246",
+    "season": "Annual (Rabi/Kharif)",
+    "sowing_window": "Feb 15 - Mar 31",
+    "growth_duration_days": 330,
+    "water_requirement_mm": 1600.0,
+    "optimal_temp_min_c": 18.0,
+    "optimal_temp_max_c": 38.0,
+    "avg_yield_maunds_per_acre": 650.0,
+    "potential_yield_maunds_per_acre": 1000.0,
+    "recommended_npk_kg_per_acre": "90-45-45",
+    "stages": [
+      {
+        "stage_name": "Germination",
+        "duration_days": 45,
+        "key_tasks": [
+          "Blind hoeing",
+          "Pre-emergence herbicide"
+        ]
+      },
+      {
+        "stage_name": "Tillering & Formative",
+        "duration_days": 90,
+        "key_tasks": [
+          "Earthing up",
+          "Heavy fertilization"
+        ]
+      },
+      {
+        "stage_name": "Grand Growth",
+        "duration_days": 135,
+        "key_tasks": [
+          "Frequent irrigation",
+          "Borer control"
+        ]
+      },
+      {
+        "stage_name": "Maturity & Ripening",
+        "duration_days": 60,
+        "key_tasks": [
+          "Withhold nitrogen",
+          "Harvesting for sugar mill"
+        ]
+      }
+    ]
+  },
+  {
+    "crop_name": "Maize",
+    "variety": "Pioneer 30Y87 (Hybrid)",
+    "season": "Spring / Kharif",
+    "sowing_window": "Feb 01 - Mar 15 (Spring) / Jul 15 - Aug 15 (Kharif)",
+    "growth_duration_days": 110,
+    "water_requirement_mm": 500.0,
+    "optimal_temp_min_c": 15.0,
+    "optimal_temp_max_c": 35.0,
+    "avg_yield_maunds_per_acre": 85.0,
+    "potential_yield_maunds_per_acre": 120.0,
+    "recommended_npk_kg_per_acre": "80-40-25",
+    "stages": [
+      {
+        "stage_name": "Emergence & V6 Stage",
+        "duration_days": 25,
+        "key_tasks": [
+          "Fall Armyworm spray",
+          "First fertigation"
+        ]
+      },
+      {
+        "stage_name": "Tasseling & Silking",
+        "duration_days": 35,
+        "key_tasks": [
+          "Critical watering stage",
+          "Second Urea application"
+        ]
+      },
+      {
+        "stage_name": "Grain Filling",
+        "duration_days": 35,
+        "key_tasks": [
+          "Maintain moisture",
+          "Nutrient boost"
+        ]
+      },
+      {
+        "stage_name": "Black Layer & Harvest",
+        "duration_days": 15,
+        "key_tasks": [
+          "Grain moisture check",
+          "Harvesting"
+        ]
+      }
+    ]
+  },
+  {
+    "crop_name": "Potato",
+    "variety": "Mozika / Asterix",
+    "season": "Rabi",
+    "sowing_window": "Oct 01 - Oct 25",
+    "growth_duration_days": 105,
+    "water_requirement_mm": 400.0,
+    "optimal_temp_min_c": 12.0,
+    "optimal_temp_max_c": 24.0,
+    "avg_yield_maunds_per_acre": 250.0,
+    "potential_yield_maunds_per_acre": 380.0,
+    "recommended_npk_kg_per_acre": "100-50-60",
+    "stages": [
+      {
+        "stage_name": "Sprouting & Canopy Establishment",
+        "duration_days": 25,
+        "key_tasks": [
+          "Ridge making",
+          "Initial irrigation"
+        ]
+      },
+      {
+        "stage_name": "Tuber Initiation & Bulking",
+        "duration_days": 50,
+        "key_tasks": [
+          "Potash application",
+          "Late blight preventive fungicide"
+        ]
+      },
+      {
+        "stage_name": "Maturation & Vine Killing",
+        "duration_days": 30,
+        "key_tasks": [
+          "Haulm cutting",
+          "Skin hardening before harvest"
+        ]
+      }
+    ]
+  }
+]

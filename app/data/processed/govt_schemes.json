@@ -1,0 +1,74 @@
+[
+  {
+    "scheme_id": "SCHEME-PUNJAB-KISAN-CARD",
+    "scheme_name": "Punjab Kisan Card Interest-Free Loan Scheme",
+    "department": "Punjab Agriculture Department / Bank of Punjab",
+    "eligibility_criteria": [
+      "Cultivator of land up to 12.5 acres in Punjab",
+      "Land ownership verified via Land Records Authority (PLRA)",
+      "Active mobile SIM registered on farmer's CNIC"
+    ],
+    "benefit_summary": "Interest-free crop production loan up to PKR 30,000 per acre (max 150,000 per farmer) for buying Urea, DAP, certified seeds, and pesticides via designated dealers.",
+    "subsidy_details": "100% Interest/Markup markup subsidy borne by Punjab Govt.",
+    "application_deadline": "Ongoing Open Registration 2024-2026",
+    "required_documents": [
+      "Original CNIC",
+      "Mobile SIM registered on same CNIC",
+      "PLRA Fard / Ownership proof"
+    ],
+    "contact_helpline": "0800-17000 / SMS CNIC to 8070"
+  },
+  {
+    "scheme_id": "SCHEME-GREEN-TRACTOR",
+    "scheme_name": "Chief Minister Punjab Green Tractor Scheme",
+    "department": "Punjab Agriculture Department (Field Wing)",
+    "eligibility_criteria": [
+      "Owner of 6 to 50 acres of agricultural land in Punjab",
+      "CNIC holder, non-defaulter of state institutions"
+    ],
+    "benefit_summary": "Flat PKR 1,000,000 (10 Lakh) subsidy per tractor for purchasing local manufactured tractors (50 HP to 85 HP). Allocated via transparent balloting per district.",
+    "subsidy_details": "PKR 10 Lakh direct subsidy per tractor unit",
+    "application_deadline": "Seasonal balloting calls (Check Punjab Agri Portal)",
+    "required_documents": [
+      "CNIC",
+      "Land Record (Fard-e-Malkiyat)",
+      "Affidavit of non-resale within 3 years"
+    ],
+    "contact_helpline": "0800-17000"
+  },
+  {
+    "scheme_id": "SCHEME-SOLAR-TUBEWELL",
+    "scheme_name": "Chief Minister Solarization of Agricultural Tubewells",
+    "department": "Energy & Agriculture Department Punjab",
+    "eligibility_criteria": [
+      "Farmers with existing diesel or electric tube-well up to 20 HP",
+      "Water table suitability in district verified by PCRWR"
+    ],
+    "benefit_summary": "Conversion of diesel/electric tubewells to solar system with up to 500,000 PKR subsidy per farmer.",
+    "subsidy_details": "60% Government Subsidy, 40% Farmer Contribution",
+    "application_deadline": "2026 Phase Application Window",
+    "required_documents": [
+      "CNIC",
+      "Tubewell Ownership / Land Title",
+      "Electricity Bill or Diesel Tubewell Proof"
+    ],
+    "contact_helpline": "0800-17000"
+  },
+  {
+    "scheme_id": "SCHEME-CROP-TAKAFUL",
+    "scheme_name": "Crop Loan Takaful (Insurance) Scheme",
+    "department": "Government of Punjab & State Bank of Pakistan",
+    "eligibility_criteria": [
+      "Small farmers cultivating under 12.5 acres receiving bank crop loans",
+      "Crops covered: Wheat, Cotton, Rice, Sugarcane, Maize"
+    ],
+    "benefit_summary": "Full compensation for crop loss due to calamity, flood, drought, or pest destruction based on area yield indexes.",
+    "subsidy_details": "100% Premium subsidy for small farmers paid by Punjab Govt.",
+    "application_deadline": "Automatic at loan disbursement",
+    "required_documents": [
+      "Bank Agri Loan Account",
+      "Crop declaration form"
+    ],
+    "contact_helpline": "0800-17000"
+  }
+]

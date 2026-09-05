@@ -1,0 +1,94 @@
+{
+  "faostat_crop_production": {
+    "Wheat": {
+      "area_harvested_ha": 8900000,
+      "production_tonnes": 28200000,
+      "yield_kg_ha": 3168.0,
+      "note": "FAOSTAT official 2022-2023 estimate for Pakistan"
+    },
+    "Cotton": {
+      "area_harvested_ha": 2140000,
+      "production_tonnes": 4800000,
+      "yield_kg_ha": 2242.0,
+      "note": "Raw seed cotton production"
+    },
+    "Rice": {
+      "area_harvested_ha": 3470000,
+      "production_tonnes": 9300000,
+      "yield_kg_ha": 2680.0,
+      "note": "Combined Basmati and IRRI coarse rice"
+    },
+    "Sugarcane": {
+      "area_harvested_ha": 1260000,
+      "production_tonnes": 88000000,
+      "yield_kg_ha": 69841.0,
+      "note": "Cane fresh weight"
+    },
+    "Maize": {
+      "area_harvested_ha": 1720000,
+      "production_tonnes": 10100000,
+      "yield_kg_ha": 5872.0,
+      "note": "High hybrid adoption driving yields"
+    }
+  },
+  "pbs_district_census": {
+    "Multan": {
+      "total_farms": 142000,
+      "cultivated_area_acres": 720000,
+      "canal_irrigated_percent": 62.0,
+      "tubewell_irrigated_percent": 38.0,
+      "major_crops": [
+        "Cotton",
+        "Wheat",
+        "Mango",
+        "Fodder"
+      ]
+    },
+    "Faisalabad": {
+      "total_farms": 185000,
+      "cultivated_area_acres": 1150000,
+      "canal_irrigated_percent": 70.0,
+      "tubewell_irrigated_percent": 30.0,
+      "major_crops": [
+        "Wheat",
+        "Sugarcane",
+        "Maize",
+        "Vegetables"
+      ]
+    },
+    "Sargodha": {
+      "total_farms": 160000,
+      "cultivated_area_acres": 980000,
+      "canal_irrigated_percent": 65.0,
+      "tubewell_irrigated_percent": 35.0,
+      "major_crops": [
+        "Citrus (Kinnow)",
+        "Wheat",
+        "Sugarcane"
+      ]
+    },
+    "Sahiwal": {
+      "total_farms": 128000,
+      "cultivated_area_acres": 690000,
+      "canal_irrigated_percent": 58.0,
+      "tubewell_irrigated_percent": 42.0,
+      "major_crops": [
+        "Maize",
+        "Potato",
+        "Wheat",
+        "Cotton"
+      ]
+    },
+    "Rahim Yar Khan": {
+      "total_farms": 175000,
+      "cultivated_area_acres": 1220000,
+      "canal_irrigated_percent": 75.0,
+      "tubewell_irrigated_percent": 25.0,
+      "major_crops": [
+        "Cotton",
+        "Sugarcane",
+        "Wheat"
+      ]
+    }
+  }
+}
