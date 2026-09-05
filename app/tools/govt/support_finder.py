@@ -64,22 +64,35 @@ def find_government_support(
         s_name = item.get("scheme_name", "Govt Scheme")
         criteria = item.get("eligibility_criteria", [])
 
-        # Check land threshold eligibility
+        # Check eligibility
         is_eligible = True
         reason = ""
 
-        if land_acres is not None:
+        # Provincial jurisdiction check (Punjab schemes)
+        non_punjab = {"sukkur", "hyderabad", "karachi", "larkana", "mirpur khas", "nawabshah", "peshawar", "mardan", "swat", "quetta", "gwadar", "gilgit"}
+        if district and district.strip().lower() in non_punjab:
+            if "punjab" in s_id.lower() or "green-tractor" in s_id.lower() or "solar-tubewell" in s_id.lower():
+                is_eligible = False
+                reason = f"Punjab government scheme is restricted to Punjab farmers. Location '{district.title()}' is outside Punjab."
+
+        # Land threshold eligibility
+        if is_eligible and land_acres is not None:
             if "kisan-card" in s_id.lower() and land_acres > 12.5:
                 is_eligible = False
-                reason = f"Land size ({land_acres} acres) exceeds Kisan Card max limit of 12.5 acres."
-            elif "green-tractor" in s_id.lower() and land_acres < 6.0:
+                reason = f"Land size ({land_acres} acres) exceeds Punjab Kisan Card maximum threshold of 12.5 acres."
+            elif "green-tractor" in s_id.lower() and (land_acres < 6.0 or land_acres > 50.0):
                 is_eligible = False
-                reason = f"Land size ({land_acres} acres) is below Green Tractor minimum threshold of 6 acres."
+                reason = f"Land size ({land_acres} acres) is outside Chief Minister Green Tractor eligible bracket (6.0 to 50.0 acres)."
+            elif "crop-takaful" in s_id.lower() and land_acres > 12.5:
+                is_eligible = False
+                reason = f"Land size ({land_acres} acres) exceeds Crop Loan Takaful smallholder threshold of 12.5 acres."
 
-        if scheme_type and scheme_type.lower() not in s_name.lower() and scheme_type.lower() not in item.get("benefit_summary", "").lower():
-            if is_eligible:
+        # Query filter by scheme type
+        if is_eligible and scheme_type:
+            st_clean = scheme_type.strip().lower()
+            if st_clean not in s_name.lower() and st_clean not in item.get("benefit_summary", "").lower():
                 is_eligible = False
-                reason = f"Scheme type does not match requested category '{scheme_type}'."
+                reason = f"Scheme does not match requested category '{scheme_type}'."
 
         ev = Evidence(
             source_id=f"GOVT_SCHEME_{s_id}",

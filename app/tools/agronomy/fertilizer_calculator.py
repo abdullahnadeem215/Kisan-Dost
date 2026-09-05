@@ -38,6 +38,7 @@ class FertilizerCalculationResult(EvidentiaryDomainModel):
     bag_breakdown: List[FertilizerBagRequirement] = Field(default_factory=list)
     total_cost_pkr: float = Field(..., ge=0.0)
     subsidy_savings_pkr: float = Field(default=0.0, ge=0.0)
+    explicit_assumptions: list[str] = Field(default_factory=list, description="Explicit agronomic conversion and pricing assumptions")
     evidence: list[Evidence] = Field(default_factory=list)
 
 
@@ -175,6 +176,16 @@ def calculate_fertilizer_needs(
             )
         )
 
+    explicit_assumptions = [
+        "1 bag of DAP (50 kg) supplies 23 kg P2O5 (46%) and 9 kg Nitrogen (18%).",
+        "1 bag of Urea (50 kg) supplies 23 kg Nitrogen (46% elemental N).",
+        "1 bag of SOP (50 kg) supplies 25 kg K2O (50% Potash).",
+        f"Agronomic target nutrient requirement: {target_npk_str} kg/acre (N-P2O5-K2O).",
+        "DAP is prioritized to fulfill phosphorus requirement; Nitrogen provided by DAP is deducted before calculating Urea bags.",
+        f"Official dealer prices: Urea @ PKR {urea_price:,.0f}/bag, DAP @ PKR {dap_price:,.0f}/bag, SOP @ PKR {sop_price:,.0f}/bag.",
+        f"Subsidy savings evaluated under Punjab Kisan Card subsidy scheme (DAP PKR {dap_subsidy:,.0f}/bag, Urea PKR {urea_subsidy:,.0f}/bag)."
+    ]
+
     ev = Evidence(
         source_id=f"FERT_CALC_{crop_name.upper().replace(' ', '_')}_{acreage}AC",
         source_name="National Fertilizer Development Centre (NFDC) Pakistan",
@@ -194,5 +205,6 @@ def calculate_fertilizer_needs(
         bag_breakdown=breakdown,
         total_cost_pkr=total_cost,
         subsidy_savings_pkr=subsidy_savings,
+        explicit_assumptions=explicit_assumptions,
         evidence=[ev]
     )

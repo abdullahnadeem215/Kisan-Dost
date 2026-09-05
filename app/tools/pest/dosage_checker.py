@@ -302,4 +302,59 @@ def verify_pesticide_dosage(
             status="UNVERIFIED",
             verification_state="unverified",
             recommended_dosage_str=rec_str,
-            recommendation=f"BLOCKED: Proposed dosage of {dosage_val} {unit}/acre EXCEEDS maximum safe limit ({max_d} {rec_u
+            recommendation=f"BLOCKED: Proposed dosage of {dosage_val} {unit}/acre EXCEEDS maximum safe limit ({max_d} {rec_unit}/acre).",
+            warning=f"Overdosage of {active_ingredient} causes leaf burn, severe phytotoxicity, and unacceptable residue levels.",
+            evidence=[ev]
+        )
+
+    if converted_dose < min_d:
+        ev = Evidence(
+            source_id=f"DOSAGE_UNDERDOSAGE_{norm_ai.upper()}",
+            source_name="Department of Plant Protection Safety Audit Engine",
+            verification_state="unverified",
+            timestamp=datetime.now(timezone.utc),
+            confidence_score=0.10,
+            notes=f"BLOCKED: Proposed dosage {dosage_val}{unit} is below minimum therapeutic threshold of {min_d}{rec_unit}."
+        )
+        return PesticideDosageCheckResult(
+            crop_name=crop_name.title(),
+            pest_name=pest_name.title(),
+            active_ingredient=active_ingredient.title(),
+            formulation=formulation.upper(),
+            proposed_dosage=dosage_val,
+            unit=unit,
+            is_verified=False,
+            status="UNVERIFIED",
+            verification_state="unverified",
+            recommended_dosage_str=rec_str,
+            recommendation=f"BLOCKED: Proposed dosage of {dosage_val} {unit}/acre is BELOW minimum effective dosage ({min_d} {rec_unit}/acre).",
+            warning=f"Underdosage fails to control {pest_name} and induces chemical resistance.",
+            evidence=[ev]
+        )
+
+    # Successful Verification!
+    ev = Evidence(
+        source_id=f"DOSAGE_VERIFIED_{norm_ai.upper()}",
+        source_name="Department of Plant Protection Approved Registry",
+        verification_state="verified",
+        timestamp=datetime.now(timezone.utc),
+        confidence_score=1.0,
+        url_or_reference="http://www.plantprotection.gov.pk/",
+        notes=f"VERIFIED: Exact match on {crop_name} + {pest_name} + {active_ingredient} + {formulation}. Dosage {dosage_val}{unit}/acre is within safe therapeutic range ({min_d}-{max_d} {rec_unit}/acre)."
+    )
+
+    return PesticideDosageCheckResult(
+        crop_name=crop_name.title(),
+        pest_name=pest_name.title(),
+        active_ingredient=active_ingredient.title(),
+        formulation=formulation.upper(),
+        proposed_dosage=dosage_val,
+        unit=unit,
+        is_verified=True,
+        status="VERIFIED",
+        verification_state="verified",
+        recommended_dosage_str=rec_str,
+        recommendation=f"VERIFIED: Application of {dosage_val} {unit}/acre of {active_ingredient.title()} ({formulation.upper()}) is approved and safe.",
+        warning=None,
+        evidence=[ev]
+    )

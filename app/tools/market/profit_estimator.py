@@ -3,7 +3,7 @@ Profit Estimator tool for full-season crop budgeting, net margin calculation, an
 """
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List, Dict
 from pydantic import Field
 from app.schemas.finance import CropFinancialPlan
 from app.schemas.evidence import EvidentiaryDomainModel, Evidence
@@ -13,12 +13,15 @@ logger = logging.getLogger(__name__)
 
 class DetailedProfitEstimate(CropFinancialPlan):
     """
-    Extended financial economics plan with break-even analysis.
+    Extended financial economics plan with break-even analysis, net margin %, and explicit assumptions.
     """
     total_cost_per_acre_pkr: float = Field(..., ge=0.0)
     net_profit_per_acre_pkr: float = Field(...)
+    net_margin_percent: float = Field(default=0.0, description="Net margin as percentage of gross revenue")
     break_even_yield_maunds_per_acre: float = Field(..., ge=0.0)
     break_even_price_pkr_per_maund: float = Field(..., ge=0.0)
+    cost_breakdown_per_acre: Dict[str, float] = Field(default_factory=dict, description="Itemized costs per acre in PKR")
+    explicit_assumptions: List[str] = Field(default_factory=list, description="Explicit economic assumptions")
 
 
 # Default cost component breakdown per acre for major Pakistani crops
@@ -47,6 +50,7 @@ def estimate_crop_profit(
 ) -> DetailedProfitEstimate:
     """
     Computes full-season agricultural budget: gross revenue, total production costs, net margin, and break-even yield.
+    Exposes explicit agronomic and economic assumptions.
     Returns typed DetailedProfitEstimate model with attached Evidence.
     """
     key = crop_name.strip().lower()
@@ -68,9 +72,32 @@ def estimate_crop_profit(
     net_profit_farm = round(gross_revenue_farm - total_cost_farm, 2)
 
     roi = round((net_profit_farm / total_cost_farm) * 100.0, 2) if total_cost_farm > 0 else 0.0
+    net_margin = round((net_profit_farm / gross_revenue_farm) * 100.0, 2) if gross_revenue_farm > 0 else 0.0
 
     break_even_yield = round(total_cost_per_acre / expected_price_pkr_per_maund, 2) if expected_price_pkr_per_maund > 0 else 0.0
     break_even_price = round(total_cost_per_acre / expected_yield_maunds_per_acre, 2) if expected_yield_maunds_per_acre > 0 else 0.0
+
+    cost_breakdown = {
+        "seed_cost_per_acre_pkr": seed_c,
+        "fertilizer_cost_per_acre_pkr": fert_c,
+        "pesticide_cost_per_acre_pkr": pest_c,
+        "irrigation_cost_per_acre_pkr": irrig_c,
+        "labor_cost_per_acre_pkr": labor_c,
+        "machinery_cost_per_acre_pkr": mach_c,
+        "other_cost_per_acre_pkr": other_c,
+        "total_cost_per_acre_pkr": total_cost_per_acre
+    }
+
+    explicit_assumptions = [
+        f"Land holding: {acreage} acres under owner-cultivation. Land rent excluded unless specified in other costs.",
+        f"Expected yield: {expected_yield_maunds_per_acre} maunds/acre based on standard progressive farming practices in Punjab.",
+        f"Selling price: PKR {expected_price_pkr_per_maund:,.0f}/maund (standard 40 kg maund unit at farm gate / local mandi).",
+        f"Full-season production cost: PKR {total_cost_per_acre:,.0f}/acre (PKR {total_cost_farm:,.0f} for {acreage} acres).",
+        f"Net margin: {net_margin:.1f}% of gross revenue (Net Profit: PKR {net_profit_farm:,.0f}).",
+        f"Break-even yield: {break_even_yield:.2f} maunds/acre needed at PKR {expected_price_pkr_per_maund:,.0f}/maund to cover operational expenses.",
+        f"Break-even selling price: PKR {break_even_price:,.0f}/maund needed at {expected_yield_maunds_per_acre:.1f} maunds/acre.",
+        "Post-harvest storage losses and mandi commission charges (arthee fee ~2%) are excluded from production budgeting."
+    ]
 
     ev = Evidence(
         source_id=f"PROFIT_EST_{crop_name.upper().replace(' ', '_')}_{acreage}AC",
@@ -99,7 +126,10 @@ def estimate_crop_profit(
         roi_percent=roi,
         total_cost_per_acre_pkr=total_cost_per_acre,
         net_profit_per_acre_pkr=round(net_profit_farm / acreage, 2) if acreage > 0 else 0.0,
+        net_margin_percent=net_margin,
         break_even_yield_maunds_per_acre=break_even_yield,
         break_even_price_pkr_per_maund=break_even_price,
+        cost_breakdown_per_acre=cost_breakdown,
+        explicit_assumptions=explicit_assumptions,
         evidence=[ev]
     )

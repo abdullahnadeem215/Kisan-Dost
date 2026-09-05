@@ -1,9 +1,10 @@
 """
 Rich Terminal CLI Application for Kisan Dost.
 Supports single-turn queries, interactive chat sessions, profile configuration,
-and scenario execution with full telemetry and decision receipt panels.
+and scenario execution with full telemetry, Farm Passport, Farm Health, and Decision Receipt panels.
 """
 import sys
+import argparse
 from typing import Optional, Dict, Any
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -29,12 +30,16 @@ from app.services.trust_service import TrustService
 from app.services.risk_service import RiskService
 from app.services.escalation_service import EscalationService
 from app.services.decision_simulator import DecisionSimulator
+from app.services.farm_health_service import FarmHealthService
 from app.tools.agronomy.crop_advisor import recommend_crops
 from app.tools.agronomy.fertilizer_calculator import calculate_fertilizer_needs
 from app.tools.market.mandi_price import get_mandi_prices
 from app.tools.pest.disease_classifier import identify_disease
-from app.presentation.mission_control import TelemetryData, ToolExecutionRecord, GuardrailAuditRecord, render_mission_control
-from app.presentation.decision_receipt import render_decision_receipt
+from app.presentation.mission_control import TelemetryData, ToolExecutionRecord, GuardrailAuditRecord, render_mission_control, render_mission_control_box
+from app.presentation.decision_receipt import render_decision_receipt, render_compact_decision_receipt
+from app.presentation.farm_passport import render_farm_passport
+from app.presentation.farm_health import render_farm_health_card
+from app.presentation.trust_status import render_trust_status
 from app.i18n import detect_language, EnglishRenderer, UrduRenderer, RomanUrduRenderer
 
 console = Console()
@@ -52,6 +57,7 @@ def configure_profile_interactive() -> FarmerProfile:
     irrigation_source = Prompt.ask("Enter Primary Irrigation Source (Canal, Tubewell, Canal+Tubewell)", default="Canal+Tubewell")
     water_turns = int(Prompt.ask("Available Water Turns per Month", default="2"))
     budget = float(Prompt.ask("Max Seasonal Input Budget (PKR)", default="250000"))
+    lang = Prompt.ask("Preferred Language (en, ur, roman_urdu)", default="roman_urdu")
 
     profile = FarmerProfile(
         farmer_id="FARM-TERM-001",
@@ -62,9 +68,11 @@ def configure_profile_interactive() -> FarmerProfile:
         soil_type=soil_type,
         irrigation_source=irrigation_source,
         max_budget_limit=budget,
-        available_water_turns=water_turns
+        available_water_turns=water_turns,
+        preferred_language=lang
     )
     console.print(f"✅ Profile updated for [bold green]{profile.name}[/bold green] ({profile.district}, {profile.land_acres} acres).")
+    render_farm_passport(profile, console=console)
     return profile
 
 
@@ -74,7 +82,67 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
     Returns synthesized results, receipt, and telemetry.
     """
     hydrated_profile = profile or ContextHydrator.get_default_profile("Multan", 5.0)
-    lang = lang_override or detect_language(query_text)
+    lang = lang_override or hydrated_profile.preferred_language or detect_language(query_text)
+
+    # Check for Farm Health command
+    if query_text.strip().lower() in ["health", "farm health", "farm health score", "score"]:
+        health_score = FarmHealthService.calculate_farm_health(
+            farmer_id=hydrated_profile.farmer_id,
+            water_score=62.0,
+            crop_condition_score=84.0,
+            pest_score=71.0,
+            weather_score=81.0,
+            economic_score=89.0,
+            profile_completeness=92.0
+        )
+        render_farm_health_card(health_score, console=console)
+        return {"health_score": health_score}
+
+    # Check for Farm Passport command
+    if query_text.strip().lower() in ["passport", "farm passport", "profile", "my profile"]:
+        render_farm_passport(hydrated_profile, console=console)
+        return {"profile": hydrated_profile}
+
+    # Check for What-If / Simulation query
+    q_lower = query_text.lower()
+    if any(term in q_lower for term in ["what if", "agar", "ya", "instead of", "chickpea", "difference", "compare", "option"]):
+        console.print(Panel("⚡ [bold magenta]SIMULATION MODE ACTIVATED[/bold magenta]\n"
+                            "[dim]Simulating scenario estimates based on current verified assumptions (Not guaranteed outcomes).[/dim]",
+                            border_style="magenta"))
+        sim_data = DecisionSimulator.simulate_what_if_question(query_text, farmer_profile=hydrated_profile)
+        sim_res = sim_data["simulation_result"]
+
+        sim_table = Table(title="📊 What-If Decision Simulation Matrix", expand=True, show_header=True, header_style="bold blue")
+        sim_table.add_column("Option", style="bold cyan")
+        sim_table.add_column("Yield", style="white")
+        sim_table.add_column("Water Req", style="bold yellow")
+        sim_table.add_column("Input Cost", style="dim white")
+        sim_table.add_column("Net Profit", style="bold green")
+        sim_table.add_column("Water Risk", style="bold")
+        sim_table.add_column("Overall Risk", style="bold")
+
+        for opt in sim_res.options:
+            w_col = "green" if opt.water_risk == "LOW" else ("yellow" if opt.water_risk == "MEDIUM" else "red")
+            r_col = "green" if opt.overall_risk == "LOW" else ("yellow" if opt.overall_risk == "MEDIUM" else "red")
+            sim_table.add_row(
+                opt.crop,
+                opt.expected_yield,
+                opt.water_requirement,
+                opt.input_cost,
+                opt.estimated_profit,
+                f"[{w_col}]{opt.water_risk}[/{w_col}]",
+                f"[{r_col}]{opt.overall_risk}[/{r_col}]"
+            )
+
+        console.print(sim_table)
+        console.print(Panel(
+            f"📌 [bold green]Recommended Choice:[/bold green] [bold]{sim_res.recommended_option}[/bold]\n"
+            f"💡 [bold]Reason:[/bold] {sim_res.recommendation_reason}\n\n"
+            f"⚖️ [bold]Trade-off Analysis:[/bold]\n" + "\n".join([f"• {t}" for t in sim_res.tradeoffs]),
+            title="🔮 Decision Simulator Recommendation",
+            border_style="green"
+        ))
+        return {"simulation": sim_res}
 
     # 1. Input Safety Guardrail Audit
     input_audit = InputGuardrail.audit_input(query_text, farmer_profile=hydrated_profile)
@@ -82,7 +150,7 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
     telemetry = TelemetryData(
         session_id="SESS-CLI-LIVE",
         query_text=query_text,
-        agent_steps=["Input Guardrail Check", "Triage Agent Intent Classification"]
+        agent_steps=["Input Guardrail Check", "Farm Passport Loaded", "Triage Intent Classification"]
     )
 
     telemetry.guardrail_audits.append(
@@ -111,7 +179,7 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
     specialist_outputs = []
 
     # Agronomy Specialist Call
-    if "agronomy" in intents or True:  # Core domain
+    if "agronomy" in intents or True:
         rec_crop = recommend_crops(district=hydrated_profile.district, soil=hydrated_profile.soil_type, season="Rabi", water="Low", acreage=hydrated_profile.land_acres)
         fert_plan = calculate_fertilizer_needs(crop_name="Wheat", acreage=hydrated_profile.land_acres)
         
@@ -122,13 +190,16 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
             ToolExecutionRecord(tool_name="calculate_fertilizer_needs", status="SUCCESS", latency_ms=18.4, summary=f"Total cost: PKR {fert_plan.total_cost_pkr:,.0f}")
         )
 
+        dap_b = next((b.total_bags for b in fert_plan.bag_breakdown if "DAP" in b.fertilizer_name), 0)
+        urea_b = next((b.total_bags for b in fert_plan.bag_breakdown if "Urea" in b.fertilizer_name), 0)
+
         specialist_outputs.append({
             "domain": "Agronomy",
             "category": "Crop",
             "water_required_irrigations": 4,
             "action_steps": [
-                f"Sow high-yielding Rabi crop ({rec_crop.recommendations[0].crop_name}) adapted for {hydrated_profile.soil_type} soil.",
-                f"Apply balanced fertilizer package: {fert_plan.bag_breakdown.get('DAP', 0)} bags DAP, {fert_plan.bag_breakdown.get('Urea', 0)} bags Urea."
+                f"Sow high-yielding Rabi Wheat ({rec_crop.recommendations[0].crop_name}) adapted for {hydrated_profile.soil_type} soil.",
+                f"Apply balanced fertilizer package: {dap_b} bags DAP, {urea_b} bags Urea."
             ],
             "evidence": rec_crop.evidence + fert_plan.evidence
         })
@@ -140,11 +211,24 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
         "evidence": []
     })
 
+    # Pest Doctor Check if pest mentioned
+    if "pest" in intents or "whitefly" in q_lower or "insect" in q_lower or "disease" in q_lower:
+        pest_diag = identify_disease(crop_name="Cotton", symptom_text="whitefly infestation curl")
+        telemetry.tool_executions.append(
+            ToolExecutionRecord(tool_name="identify_disease", status="SUCCESS", latency_ms=12.1, summary=f"Diagnosed: {pest_diag.disease_name}")
+        )
+        specialist_outputs.append({
+            "domain": "Pest",
+            "category": "PlantProtection",
+            "action_steps": [f"Pest Management: Monitor for {pest_diag.disease_name}. {pest_diag.organic_control}"],
+            "evidence": pest_diag.evidence
+        })
+
     # Market Specialist Call
     if "market" in intents or True:
         mandi_res = get_mandi_prices(commodity="Wheat", district=hydrated_profile.district)
         telemetry.tool_executions.append(
-            ToolExecutionRecord(tool_name="get_mandi_prices", status="SUCCESS", latency_ms=14.0, summary=f"Modal rate PKR {mandi_res.prices[0].modal_price_pkr_per_maund}/maund")
+            ToolExecutionRecord(tool_name="get_mandi_prices", status="CACHED", latency_ms=14.0, summary=f"Modal rate PKR {mandi_res.prices[0].modal_price_pkr_per_maund}/maund")
         )
         specialist_outputs.append({
             "domain": "Market",
@@ -179,8 +263,14 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
     telemetry.confidence_level = conf_metrics.confidence_level
     telemetry.grounding_state = receipt.overall_verification_state
 
+    # Render Visual Farm Passport
+    render_farm_passport(hydrated_profile, console=console)
+
     # Render Mission Control Telemetry
     render_mission_control(telemetry, console=console)
+
+    # Render Trust Status Card
+    render_trust_status(trust_report, conf_metrics, risk_level=risk.risk_level, console=console)
 
     # Render Decision Receipt Card
     render_decision_receipt(receipt=receipt, decision=decision, console=console)
@@ -208,7 +298,13 @@ def interactive_session_loop(profile: Optional[FarmerProfile] = None):
     """
     Runs interactive chat terminal loop.
     """
-    console.print(Panel("🌾 [bold green]Welcome to Kisan Dost Interactive Advisory Session[/bold green]\nType 'exit', 'quit', or 'q' to end session.", border_style="green"))
+    console.print(Panel("🌾 [bold green]Welcome to Kisan Dost Interactive Advisory Session[/bold green]\n"
+                        "Commands:\n"
+                        "• Type your farming question in Roman Urdu, Urdu, or English\n"
+                        "• Type 'passport' to view your Farm Passport\n"
+                        "• Type 'health' to view your Farm Health Score\n"
+                        "• Type 'profile' to edit your farm details\n"
+                        "• Type 'exit' or 'q' to quit.", border_style="green"))
     active_profile = profile or ContextHydrator.get_default_profile("Multan", 5.0)
 
     while True:
@@ -236,7 +332,7 @@ def main():
     parser.add_argument("-q", "--query", type=str, help="Single-turn advisory query text")
     parser.add_argument("-i", "--interactive", action="store_true", help="Launch interactive session mode")
     parser.add_argument("-p", "--profile", action="store_true", help="Interactively setup farmer profile before running")
-    parser.add_argument("-s", "--scenario", type=str, help="Run specific demo scenario (main, conflict, whatif, safety, low_confidence, offline)")
+    parser.add_argument("-s", "--scenario", type=str, help="Run specific demo scenario (main, conflict, whatif, safety, low_confidence, offline, all)")
     parser.add_argument("-l", "--lang", type=str, choices=["en", "ur", "roman_urdu"], help="Language override")
 
     args = parser.parse_args()
@@ -246,7 +342,6 @@ def main():
         profile = configure_profile_interactive()
 
     if args.scenario:
-        # Import and run scenario runner from demo script
         from scripts.demo import run_demo_scenario
         run_demo_scenario(args.scenario)
         return

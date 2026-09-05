@@ -105,6 +105,36 @@ def compute_irrigation_schedule(
         f"Irrigate during early morning or evening hours to minimize evaporation losses."
     )
 
+    # Explicit assumptions exposed per FAO-56 Penman-Monteith methodology
+    explicit_assumptions = [
+        f"Reference Evapotranspiration ET0 = {et0_mm_day:.2f} mm/day computed via FAO-56 Penman-Monteith equation for standardized grass surface.",
+        f"Crop coefficient Kc = {kc:.2f} for {crop_name.title()} at {growth_stage.title()} stage (FAO Irrigation and Drainage Paper 56, Table 12).",
+        f"Crop Evapotranspiration ETc = ET0 × Kc = {etc_mm_day:.2f} mm/day.",
+        f"Effective Rainfall Pe = {effective_rainfall_mm:.2f} mm/day considered in net irrigation requirement.",
+        f"Soil Available Water Capacity (AWC) = {awc:.1f} mm/m depth for {soil_type.title()} soil texture.",
+        f"Effective crop root depth Zr = {root_depth_m:.2f} m for {growth_stage.title()} stage.",
+        f"Total Available Water (TAW = AWC × Zr) = {taw_mm:.1f} mm in the active root zone.",
+        f"Management Allowed Depletion threshold (MAD / p-factor) = 50% ({mad_threshold_mm:.1f} mm) to prevent moisture stress.",
+        f"Current root zone moisture = {current_water_mm:.1f} mm ({current_moisture_percent:.1f}% of TAW); Deficit = {deficit_mm:.1f} mm.",
+        "Irrigation application efficiency assumed at 70% for Bed-and-Furrow method (vs 50% for standard basin flooding)."
+    ]
+
+    assumptions_breakdown = {
+        "methodology": "FAO-56 Penman-Monteith",
+        "et0_mm_day": float(et0_mm_day),
+        "crop_coefficient_kc": float(kc),
+        "etc_mm_day": float(etc_mm_day),
+        "effective_rainfall_mm": float(effective_rainfall_mm),
+        "soil_awc_mm_per_m": float(awc),
+        "root_depth_m": float(root_depth_m),
+        "taw_mm": float(round(taw_mm, 2)),
+        "mad_percent": 50.0,
+        "depletion_threshold_mm": float(round(mad_threshold_mm, 2)),
+        "current_water_mm": float(round(current_water_mm, 2)),
+        "deficit_mm": float(round(deficit_mm, 2)),
+        "irrigation_efficiency_percent": 70.0
+    }
+
     ev = Evidence(
         source_id=f"FAO56_IRRIGATION_{crop_key.upper()}_{stage_key.upper()}",
         source_name="FAO-56 Penman-Monteith Irrigation Guide",
@@ -125,5 +155,10 @@ def compute_irrigation_schedule(
         next_irrigation_date=next_date_str,
         irrigation_method="Bed-and-Furrow / Alternate Furrow Irrigation",
         water_saving_tips=f"{advice} {water_tips}",
+        etc_mm_day=etc_mm_day,
+        et0_mm_day=float(et0_mm_day),
+        crop_coefficient_kc=float(kc),
+        explicit_assumptions=explicit_assumptions,
+        assumptions_breakdown=assumptions_breakdown,
         evidence=[ev]
     )

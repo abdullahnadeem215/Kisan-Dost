@@ -1,15 +1,77 @@
 """
 Decision Receipt Visualization for Kisan Dost.
 Renders formatted Decision Receipt card summarizing crop recommendation, fertilizer plan,
-market rates, water risk, confidence %, and data grounding status.
+market rates, water risk, confidence %, evidence sources, and data grounding status.
 """
-from typing import Optional, Dict, Any
-from rich.console import Console
+from typing import Optional, Dict, Any, List
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from app.schemas.decision import AgronomicDecision
 from app.schemas.decision_receipt import DecisionReceipt
+
+
+def render_compact_decision_receipt(
+    decision_text: str,
+    why_points: List[str],
+    evidence_sources: List[str],
+    confidence_pct: float = 87.0,
+    risk_level: str = "LOW",
+    data_status: str = "LIVE",
+    console: Optional[Console] = None
+) -> str:
+    """
+    Renders compact Decision Receipt card matching the signature specification:
+    ╭──────────── DECISION RECEIPT ───────────╮
+    │ Decision: DELAY IRRIGATION              │
+    │                                         │
+    │ WHY                                     │
+    │ • Rain forecast                         │
+    │ • Soil moisture adequate                │
+    │ • Immediate irrigation not critical     │
+    │                                         │
+    │ EVIDENCE                                │
+    │ ✓ Open-Meteo                            │
+    │ ✓ Farmer Profile                        │
+    │ ✓ Irrigation Model                      │
+    │                                         │
+    │ Confidence: 87%                         │
+    │ Risk: LOW                               │
+    │                                         │
+    │ Data Status: LIVE                       │
+    ╰─────────────────────────────────────────╯
+    """
+    con = console or Console(record=True, width=60)
+
+    why_str = "\n".join([f"• {pt}" for pt in why_points]) or "• Agronomic constraints satisfied"
+    ev_str = "\n".join([f"✓ {src}" for src in evidence_sources]) or "✓ Farmer Profile Context"
+
+    conf_color = "green" if confidence_pct >= 75 else "yellow"
+    risk_color = "green" if risk_level.upper() == "LOW" else ("yellow" if risk_level.upper() == "MEDIUM" else "red")
+    status_badge = f"[bold green]{data_status}[/bold green]" if data_status == "LIVE" else f"[bold yellow]{data_status}[/bold yellow]"
+
+    content = (
+        f"[bold white]Decision:[/bold white] [bold cyan]{decision_text.upper()}[/bold cyan]\n\n"
+        f"[bold yellow]WHY[/bold yellow]\n{why_str}\n\n"
+        f"[bold yellow]EVIDENCE[/bold yellow]\n{ev_str}\n\n"
+        f"Confidence: [{conf_color}]{confidence_pct:.0f}%[/{conf_color}]\n"
+        f"Risk: [{risk_color}]{risk_level.upper()}[/{risk_color}]\n\n"
+        f"Data Status: {status_badge}"
+    )
+
+    panel = Panel(
+        content,
+        title="╭──────────── DECISION RECEIPT ───────────╮",
+        subtitle="[dim]Immutable Audit Record[/dim]",
+        border_style="bright_blue",
+        width=48
+    )
+
+    con.print(panel)
+    if con.record:
+        return con.export_text()
+    return ""
 
 
 def render_decision_receipt(
@@ -19,18 +81,17 @@ def render_decision_receipt(
     console: Optional[Console] = None
 ) -> str:
     """
-    Renders a formatted Decision Receipt card using Rich and returns text string output.
-    Summarizes crop recommendation, fertilizer plan, market rates, water risk, confidence %, and grounding status.
+    Renders formatted Decision Receipt card with summary and evidence audit tables.
     """
     con = console or Console(record=True, width=100)
     ctx = additional_context or {}
 
     # Extract dynamic values or default from context/decision
-    crop_rec = ctx.get("crop_recommendation", decision.title if decision else "Recommended Crop Package")
+    crop_rec = ctx.get("crop_recommendation", decision.title if decision else receipt.decision or "Recommended Package")
     fertilizer_plan = ctx.get("fertilizer_plan", "Standard NPK Split (Urea & DAP as calculated)")
     market_rates = ctx.get("market_rates", "PKR 3,950 / maund (AMIS Verified Benchmark)")
     water_risk = ctx.get("water_risk", "Low Stress (Schedule matched to turns)")
-    confidence_pct = ctx.get("confidence_pct", 88.0)
+    confidence_pct = ctx.get("confidence_pct", receipt.confidence * 100 if hasattr(receipt, "confidence") and receipt.confidence else 88.0)
     grounding_status = receipt.overall_verification_state.upper()
 
     # Grounding badge styling
@@ -93,6 +154,3 @@ def render_decision_receipt(
     if con.record:
         return con.export_text()
     return ""
-
-
-from rich.console import Group
