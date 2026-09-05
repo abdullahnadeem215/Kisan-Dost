@@ -103,6 +103,24 @@ def run_query_pipeline(query_text: str, profile: Optional[FarmerProfile] = None,
         render_farm_passport(hydrated_profile, console=console)
         return {"profile": hydrated_profile}
 
+    # Check for conversational greeting
+    if query_text.strip().lower() in ["hi", "hello", "assalam o alaikum", "assalam-o-alaikum", "salam", "aoa", "hey", "adab", "help"]:
+        console.print(Panel(
+            f"🌾 [bold green]Assalam-o-Alaikum, Chaudhry Ahmad Sahab![/bold green]\n\n"
+            f"Main **Kisan Dost** hoon — aapka AI Agronomy Decision Engine.\n\n"
+            f"Aap mujhse pooch sakte hain:\n"
+            f"• [bold cyan]Crop Advisory:[/bold cyan] \"5 acre zameen hai Multan mein, Rabi mein kya lagaoon?\"\n"
+            f"• [bold cyan]Fertilizer Plan:[/bold cyan] \"Wheat ke liye kitni DAP aur Urea chahiye?\"\n"
+            f"• [bold cyan]Mandi Rates:[/bold cyan] \"Multan mandi mein wheat ka rate kya hai?\"\n"
+            f"• [bold cyan]What-If Simulator:[/bold cyan] \"Wheat ya chickpea mein se konsa lagaoon?\"\n"
+            f"• [bold cyan]Pest Safety:[/bold cyan] \"Whitefly ke liye safe spray batao.\"\n"
+            f"• [bold cyan]Farm Status:[/bold cyan] Type '[bold]passport[/bold]' ya '[bold]health[/bold]' to check your farm metrics.",
+            title="👋 Welcome to Kisan Dost",
+            border_style="green"
+        ))
+        render_farm_passport(hydrated_profile, console=console)
+        return {"greeting": True}
+
     # Check for What-If / Simulation query
     q_lower = query_text.lower()
     if any(term in q_lower for term in ["what if", "agar", "ya", "instead of", "chickpea", "difference", "compare", "option"]):

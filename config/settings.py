@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
 
+    # Server settings
+    api_host: str = "0.0.0.0"
+    api_port: int = 8000
+
     # API Keys & Endpoints
     groq_api_key: Optional[str] = None
     groq_model: str = "llama-3.3-70b-versatile"
@@ -21,6 +25,7 @@ class Settings(BaseSettings):
     base_dir: Path = Path(__file__).resolve().parent.parent
     dataset_dir: Path = base_dir / "app" / "data" / "processed"
     raw_data_dir: Path = base_dir / "app" / "data" / "raw"
+    sqlite_db_path: Path = base_dir / "app" / "data" / "kisan_dost.db"
 
     # Default Agro Parameters
     default_currency: str = "PKR"

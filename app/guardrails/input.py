@@ -3,7 +3,7 @@ Input Safety Guardrail for Kisan Dost.
 Enforces topic relevance, jailbreak/prompt injection detection, and human medical advice blocking.
 """
 import re
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field
 
 
@@ -15,6 +15,14 @@ class InputGuardrailResult(BaseModel):
     blocked_category: Optional[str] = Field(None, description="JAILBREAK, HUMAN_MEDICAL, OFF_TOPIC, HAZARD")
     reason: str = Field(..., description="Explanation of evaluation outcome")
     sanitized_prompt: str = Field(..., description="Cleaned or original prompt text")
+
+    @property
+    def is_safe(self) -> bool:
+        return self.is_allowed
+
+    @property
+    def refusal_reason(self) -> Optional[str]:
+        return self.reason if not self.is_allowed else None
 
 
 # Jailbreak & System Override Patterns
@@ -40,12 +48,12 @@ HUMAN_MEDICAL_PATTERNS = [
 
 # Agricultural Keywords
 AGRI_KEYWORDS = [
-    "crop", "wheat", "cotton", "rice", "maize", "sugarcane", "potato", "tomato",
-    "mandi", "price", "fertilizer", "urea", "dap", "npk", "pesticide", "spray",
-    "pest", "disease", "rust", "blight", "yield", "acre", "maund", "canal",
-    "irrigation", "water", "tubewell", "kisan", "farm", "farmer", "agriculture",
-    "soil", "weather", "rain", "temperature", "subsidy", "scheme", "loan",
-    "gandum", "k कपास", "chawal", "fasal", "paani", "khaad", "ziyada", "نقصان", "فصل", "گندم", "پانی", "کھاد"
+    "crop", "wheat", "cotton", "rice", "maize", "sugarcane", "potato", "tomato", "chickpea", "canola",
+    "mandi", "price", "fertilizer", "urea", "dap", "npk", "pesticide", "spray", "chemical", "dose", "dosage",
+    "pest", "disease", "rust", "blight", "yield", "acre", "maund", "canal", "water",
+    "irrigation", "tubewell", "kisan", "farm", "farmer", "agriculture", "recommend",
+    "soil", "weather", "rain", "temperature", "subsidy", "scheme", "loan", "seed",
+    "gandum", "kapas", "chawal", "fasal", "paani", "pani", "khaad", "khad", "ziyada", "نقصان", "فصل", "گندم", "پانی", "کھاد"
 ]
 
 
@@ -91,14 +99,11 @@ class InputGuardrail:
                 )
 
         # 3. Topic Relevance Check (Generous baseline matching)
-        # If prompt is very short or clearly non-agri, flag off-topic.
         has_agri_context = any(kw in prompt_lower for kw in AGRI_KEYWORDS)
-        # General conversational greetings are allowed
-        greetings = ["hi", "hello", "assalam", "salam", "help", "kisan", "dost", "آؤ", "سلام"]
-        is_greeting = any(g in prompt_lower for g in greetings)
+        greetings = ["hi", "hello", "assalam", "salam", "help", "kisan", "dost", "aoa", "hey", "adab", "آؤ", "سلام", "کیسے"]
+        is_greeting = any(g in prompt_lower for g in greetings) or len(prompt_lower.split()) <= 2
 
         if not has_agri_context and not is_greeting:
-            # Check if prompt looks completely unrelated (e.g. quantum mechanics, movie plot)
             off_topic_indicators = ["quantum", "crypto", "bitcoin", "movie", "hollywood", "recipe for cake", "python script to hack"]
             if any(ind in prompt_lower for ind in off_topic_indicators):
                 return InputGuardrailResult(
@@ -114,3 +119,10 @@ class InputGuardrail:
             reason="Input prompt passed all safety and relevance checks.",
             sanitized_prompt=prompt_clean
         )
+
+    @classmethod
+    def audit_input(cls, prompt: str, farmer_profile: Optional[Any] = None) -> InputGuardrailResult:
+        """
+        Alias for validate_input supporting optional farmer_profile context.
+        """
+        return cls.validate_input(prompt)

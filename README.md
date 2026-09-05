@@ -342,4 +342,4 @@ kisan-dost/
 
 ---
 
-**Built with pride for Pakistani Farmers 🌾**
+**Built with pride BY Abdullah Nadeem for Pakistani Farmers at SMIT Hackathon 🌾**

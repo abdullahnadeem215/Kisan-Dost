@@ -1,12 +1,17 @@
 """
 Geocoding tool for Pakistani cities and agricultural districts.
+Integrated with Open-Meteo Geocoding API with local verified fallback cache.
 """
 from datetime import datetime, timezone
+import logging
 from typing import Dict, Tuple, Optional
+import httpx
 from pydantic import Field
 from app.schemas.evidence import EvidentiaryDomainModel, Evidence
 
-# Comprehensive Pakistani District & City Coordinates Registry
+logger = logging.getLogger(__name__)
+
+# Comprehensive Pakistani District & City Coordinates Registry (Verified Fast Baseline)
 PAKISTANI_LOCATIONS: Dict[str, Dict[str, str | float]] = {
     "multan": {"name": "Multan", "district": "Multan", "province": "Punjab", "lat": 30.1575, "lon": 71.5249},
     "lahore": {"name": "Lahore", "district": "Lahore", "province": "Punjab", "lat": 31.5204, "lon": 74.3587},
@@ -31,7 +36,6 @@ PAKISTANI_LOCATIONS: Dict[str, Dict[str, str | float]] = {
     "muzaffargarh": {"name": "Muzaffargarh", "district": "Muzaffargarh", "province": "Punjab", "lat": 30.0750, "lon": 71.1800},
     "layyah": {"name": "Layyah", "district": "Layyah", "province": "Punjab", "lat": 30.9600, "lon": 70.9400},
     "bhakkar": {"name": "Bhakkar", "district": "Bhakkar", "province": "Punjab", "lat": 31.6253, "lon": 71.0654},
-    "miyanwali": {"name": "Mianwali", "district": "Mianwali", "province": "Punjab", "lat": 32.5853, "lon": 71.5436},
     "mianwali": {"name": "Mianwali", "district": "Mianwali", "province": "Punjab", "lat": 32.5853, "lon": 71.5436},
     "chiniot": {"name": "Chiniot", "district": "Chiniot", "province": "Punjab", "lat": 31.7200, "lon": 72.9781},
     "nankana sahib": {"name": "Nankana Sahib", "district": "Nankana Sahib", "province": "Punjab", "lat": 31.4492, "lon": 73.7124},
@@ -66,11 +70,52 @@ class GeocodingResult(EvidentiaryDomainModel):
 def geocode_location(location_query: str) -> GeocodingResult:
     """
     Geocodes Pakistani city or district query into geographical coordinates.
+    Attempts live Open-Meteo Geocoding API lookup, with local verified database as resilient fallback.
     Returns typed GeocodingResult model with attached Evidence.
     """
     query_clean = location_query.strip().lower()
-    
-    # Direct match or substring match search
+
+    # 1. Try Live Open-Meteo Geocoding API
+    try:
+        with httpx.Client(timeout=3.0) as client:
+            resp = client.get(
+                "https://geocoding-api.open-meteo.com/v1/search",
+                params={"name": location_query, "count": 1, "language": "en", "format": "json"}
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                if results:
+                    top = results[0]
+                    lat = float(top.get("latitude"))
+                    lon = float(top.get("longitude"))
+                    name = str(top.get("name", location_query.title()))
+                    country = str(top.get("country", "Pakistan"))
+                    admin1 = str(top.get("admin1", "Punjab"))
+
+                    ev = Evidence(
+                        source_id=f"GEO_LIVE_OPEN_METEO_{name.upper()}",
+                        source_name="Open-Meteo Geocoding API",
+                        verification_state="verified",
+                        timestamp=datetime.now(timezone.utc),
+                        confidence_score=0.99,
+                        url_or_reference=f"https://geocoding-api.open-meteo.com/v1/search?name={location_query}",
+                        notes=f"Live geocoding resolved '{location_query}' to {name}, {admin1} ({lat:.4f}, {lon:.4f})."
+                    )
+                    return GeocodingResult(
+                        query=location_query,
+                        location_name=name,
+                        district=name,
+                        province=admin1,
+                        latitude=lat,
+                        longitude=lon,
+                        confidence_score=0.99,
+                        evidence=[ev]
+                    )
+    except Exception as e:
+        logger.debug(f"Open-Meteo live geocoding query fallback for '{location_query}': {e}")
+
+    # 2. Local verified Pakistani district registry lookup
     matched_key = None
     for loc_key in PAKISTANI_LOCATIONS:
         if loc_key in query_clean or query_clean in loc_key:
@@ -98,7 +143,7 @@ def geocode_location(location_query: str) -> GeocodingResult:
             evidence=[ev]
         )
     
-    # Fallback to Multan (heart of Punjab agrarian belt)
+    # 3. Fallback to Multan (heart of Punjab agrarian belt)
     fallback_info = PAKISTANI_LOCATIONS["multan"]
     ev = Evidence(
         source_id="GEO_PAK_FALLBACK_MULTAN",
