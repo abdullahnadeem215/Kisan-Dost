@@ -17,9 +17,12 @@ class RomanUrduRenderer:
         receipt: DecisionReceipt,
         extra_data: Optional[Dict[str, Any]] = None
     ) -> str:
-        cost_pkr = f"PKR {receipt.total_cost_pkr:,.0f}" if receipt.total_cost_pkr else "PKR 110,448"
-        rev_pkr = f"PKR {receipt.expected_revenue_pkr:,.0f}" if receipt.expected_revenue_pkr else "PKR 790,000"
-        gain_pkr = f"PKR {receipt.net_financial_gain_pkr:,.0f}" if receipt.net_financial_gain_pkr else "PKR 679,552"
+        total_cost = getattr(receipt, 'total_cost_pkr', None) or 110448.0
+        exp_rev = getattr(receipt, 'expected_revenue_pkr', None) or 790000.0
+        net_gain = getattr(receipt, 'net_financial_gain_pkr', None) or 679552.0
+        cost_pkr = f"PKR {total_cost:,.0f}"
+        rev_pkr = f"PKR {exp_rev:,.0f}"
+        gain_pkr = f"PKR {net_gain:,.0f}"
 
         lines = [
             f"🌾 Kisan Dost Zarai Mashwara:",

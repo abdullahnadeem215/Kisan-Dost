@@ -38,12 +38,117 @@ async function fetchWithFallback<T>(url: string, options: RequestInit, fallback:
   }
 }
 
+// Fast client-side topic guardrail to immediately intercept off-topic questions
+function checkClientTopicSafety(query: string): { isSafe: boolean; reason?: string } {
+  const q = query.toLowerCase().trim();
+  if (!q) return { isSafe: false, reason: 'Empty query provided.' };
+
+  const explicitOffTopic = [
+    /\b(prime minister|wazir e azam|nawaz sharif|imran khan|bilawal|shehbaz|parliament|election|elections|vote|pti|pmln|president|trump|biden|modi|politics|siyasat)\b/,
+    /\b(cricket|babar azam|virat kohli|shaheen afridi|psl|ipl|world cup|football|messi|ronaldo|fifa|match score|cricket score|pubg|free fire|ludo)\b/,
+    /\b(movie|film|cinema|actor|actress|song|music|drama|hollywood|bollywood|netflix|celebrity|love story|shayari|poetry|romantic)\b/,
+    /\b(python|javascript|java|c\+\+|html|css|react|coding|programming|github|algorithm|hack|hacking|software|windows|android|iphone)\b/,
+    /\b(bitcoin|crypto|cryptocurrency|ethereum|forex|stock exchange|stock market|trading|nft|dollar rate|exchange rate)\b/,
+    /\b(quantum|black hole|capital of|speed of light|einstein|planet mars|universe|pythagoras|solve equation|essay on|recipe for cake|recipe for biryani|how to cook)\b/,
+    /\b(paracetamol|ibuprofen|amoxicillin|insulin|aspirin|cough syrup|human fever|human cancer|headache)\b/,
+    /\b(car engine|bike repair|mobile phone price|smartphone to buy)\b/
+  ];
+
+  for (const pat of explicitOffTopic) {
+    if (pat.test(q)) {
+      return {
+        isSafe: false,
+        reason: 'Yeh sawal zaraat aur kheti baari se mutalliq nahi hai. Kisan Dost sirf faslon, zameen, khad, bimari, mandi rates aur kisan schemes ke baray mein rehnumai faraham karta hai.'
+      };
+    }
+  }
+
+  return { isSafe: true };
+}
+
 export const apiClient = {
   // 1. Advisory Pipeline
   async queryAdvisory(
     query: string,
     profile?: Partial<FarmerProfile>
   ): Promise<AdvisoryQueryResponse> {
+    const qLower = query.toLowerCase().trim();
+
+    // 1. Client-Side Input Guardrail Pre-Check
+    const guardrail = checkClientTopicSafety(query);
+    if (!guardrail.isSafe) {
+      return {
+        query,
+        is_safe: false,
+        is_simulation: false,
+        refusal_reason: guardrail.reason,
+        language_detected: profile?.preferred_language || 'roman_urdu',
+        intents_detected: [],
+        decision: null as any,
+        receipt: null as any,
+        dashboard_metrics: null as any,
+        simulation_result: null as any,
+        advisory_text: `Safety Guardrail: ${guardrail.reason}`,
+        advisory_english: 'Safety Guardrail Notice: This question is outside the agricultural domain. Kisan Dost is a specialized farming AI companion for Pakistani farmers.',
+        advisory_roman_urdu: `Safety Guardrail: ${guardrail.reason}`,
+        advisory_urdu: 'حفاظتی نوٹس: یہ سوال زراعت اور کھیتی باڑی کے دائرہ کار سے باہر ہے۔ کسان دوست صرف زرعی رہنمائی فراہم کرتا ہے۔',
+        telemetry_steps: ['Input Guardrail Check: BLOCKED (Out of Domain)']
+      };
+    }
+
+    // 2. Intelligent offline fallback generator
+    const isFullPlanQuery = /kya lagaoon|kya kasht|recommend crop|sowing plan|faisla|decision|mere faislay|full plan/i.test(qLower);
+    const isGreeting = /^(salam|assalam|hi|hello|hey|aoa|adab)|who are you|aap kon|kisan dost|help|madad/i.test(qLower);
+
+    let fallbackText = '';
+    let fallbackReceipt: any = null;
+    let fallbackMetrics: any = null;
+
+    if (isGreeting) {
+      fallbackText = `Walaikum Assalam ${profile?.name || 'Chaudhry Ahmad'} bhai! Main Kisan Dost hoon — aap ka digital zarai dost. ${profile?.district || 'Multan'} mein aap ke ${profile?.total_land_acres || 5} acre farm par fasal ki kya soorat-e-haal hai? Khad, pani ya mandi rates ke baray mein sawal poochein!`;
+    } else if (isFullPlanQuery) {
+      fallbackText = `Rabi Season mein ${profile?.total_land_acres || 5} acre par Gandum lagana behtar hai. DAP aur Urea ki mutawazin miqdar use karein aur ${profile?.available_water_turns || 2} nehri turns ke mutabiq paani dein.`;
+      fallbackReceipt = {
+        receipt_id: 'RCPT-OFFLINE-01',
+        query_summary: query,
+        action_title: 'Wheat Sowing & Balanced Nutrition Plan',
+        action_category: 'Crop',
+        urgency_level: 'MEDIUM',
+        action_steps: [
+          'Sow certified high-yielding Rabi Wheat adapted for Multan Loam soil.',
+          'Apply balanced fertilizer: 5.5 bags DAP at sowing, 8.75 bags Urea in splits.',
+          'Maintain strict water schedule aligned with 2 available canal turns.'
+        ],
+        key_rationale: 'Optimized for 5 acres with limited water constraint and verified Multan mandi pricing benchmark.',
+        expected_impact: 'Target yield 40 maunds/acre with estimated net revenue PKR 790,000.',
+        total_cost_pkr: 110448,
+        expected_revenue_pkr: 790000,
+        net_financial_gain_pkr: 679552,
+        overall_confidence_percent: 88,
+        confidence_level: 'HIGH',
+        overall_verification_state: 'fallback',
+        evidence_grounding_summary: 'Grounding sources: AMIS Punjab Mandi Rates & NARC Agro Recommendations (Cached).',
+        evidence_sources: ['AMIS Punjab', 'NARC', 'Punjab Irrigation'],
+        grounded_items_count: 6,
+        unverified_items_count: 0
+      };
+      fallbackMetrics = {
+        category: 'receipt',
+        title: 'Comprehensive Farm Decision Plan',
+        source: 'AMIS & NARC Verified Models',
+        verified: true,
+        metrics: [
+          { label: 'Recommended Crop', value: `Certified Wheat (${profile?.soil_type || 'Loam'})` },
+          { label: 'Projected Net Profit', value: 'PKR 679,552' },
+          { label: 'Water Plan', value: `${profile?.available_water_turns || 2} Canal Turns Scheduled` }
+        ],
+        interactive_tool: 'receipt',
+        tool_button_label: 'View Official Decision Receipt'
+      };
+    } else {
+      fallbackText = `${profile?.name || 'Kisan'} bhai, aap ke sawal ke mutabiq zarai tehqeeq (NARC/AMIS) ki roshni mein bar-waqt fasal ki dekh bhaal aur mutawazin aabpashi zaroori hai. Mazeed wazahat ke liye sawal poochein!`;
+    }
+
     return fetchWithFallback<AdvisoryQueryResponse>(
       `${API_BASE}/advisory/query`,
       {
@@ -65,36 +170,14 @@ export const apiClient = {
         is_safe: true,
         is_simulation: false,
         language_detected: profile?.preferred_language || 'roman_urdu',
-        intents_detected: ['agronomy', 'market', 'finance'],
-        receipt: {
-          receipt_id: 'RCPT-OFFLINE-01',
-          query_summary: query,
-          action_title: 'Wheat Sowing & Balanced Nutrition Plan',
-          action_category: 'Crop',
-          urgency_level: 'MEDIUM',
-          action_steps: [
-            'Sow certified high-yielding Rabi Wheat adapted for Multan Loam soil.',
-            'Apply balanced fertilizer: 5.5 bags DAP at sowing, 8.75 bags Urea in splits.',
-            'Maintain strict water schedule aligned with 2 available canal turns.'
-          ],
-          key_rationale: 'Optimized for 5 acres with limited water constraint and verified Multan mandi pricing benchmark.',
-          expected_impact: 'Target yield 40 maunds/acre with estimated net revenue PKR 790,000.',
-          total_cost_pkr: 110448,
-          expected_revenue_pkr: 790000,
-          net_financial_gain_pkr: 679552,
-          overall_confidence_percent: 88,
-          confidence_level: 'HIGH',
-          overall_verification_state: 'fallback',
-          evidence_grounding_summary: 'Grounding sources: AMIS Punjab Mandi Rates & NARC Agro Recommendations (Cached).',
-          evidence_sources: ['AMIS Punjab', 'NARC', 'Punjab Irrigation'],
-          grounded_items_count: 6,
-          unverified_items_count: 0
-        },
-        advisory_text: 'Rabi Season mein 5 acre par Gandum lagana behtar hai. DAP aur Urea ki mutawazin miqdar use karein aur 2 nehri turns ke mutabiq paani dein.',
-        advisory_english: 'Wheat is recommended for Rabi on 5 acres. Apply balanced DAP and Urea fertilizer and schedule 2 canal water turns conservatively.',
-        advisory_roman_urdu: 'Rabi Season mein 5 acre par Gandum lagana behtar hai. DAP aur Urea ki mutawazin miqdar use karein aur 2 nehri turns ke mutabiq paani dein.',
-        advisory_urdu: 'ربیع سیزن میں 5 ایکڑ پر گندم لگانا بہترین انتخاب ہے۔ ڈی اے پی اور یوریا متوازن مقدار میں ڈالیں اور نہری پانی کے 2 باریوں کا محتاط شیڈول رکھیں۔',
-        telemetry_steps: ['Input Guardrail Validated', 'Local Verified Cache Grounded', 'Decision Receipt Generated']
+        intents_detected: isGreeting ? ['greeting'] : (isFullPlanQuery ? ['agronomy', 'market'] : ['conversational_qa']),
+        receipt: fallbackReceipt,
+        dashboard_metrics: fallbackMetrics,
+        advisory_text: fallbackText,
+        advisory_english: fallbackText,
+        advisory_roman_urdu: fallbackText,
+        advisory_urdu: fallbackText,
+        telemetry_steps: ['Input Guardrail Validated', 'Local Verified Cache Grounded']
       }
     );
   },

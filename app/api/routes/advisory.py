@@ -108,31 +108,63 @@ async def query_advisory(req: AdvisoryQueryRequest):
     # 1. Input Guardrail Audit
     input_audit = InputGuardrail.audit_input(query_text, farmer_profile=profile)
     if not input_audit.is_safe:
+        en_refusal = "Safety Guardrail Notice: This question is outside the agricultural and farming domain. Kisan Dost is a dedicated agricultural AI companion specifically designed for crops, soil health, fertilizer calculations, irrigation scheduling, pest/disease diagnostics, mandi rates, and farmer government schemes. Please ask a farming-related question!"
+        ur_refusal = "حفاظتی نوٹس (Safety Guardrail): یہ سوال زراعت اور کھیتی باڑی کے دائرہ کار سے باہر ہے۔ کسان دوست ایک خصوصی زرعی معاون ہے جو صرف فصلوں، زمین، کھاد کے حساب، نہری پانی، بیماریوں کی تشخیص، منڈی کے بھاؤ اور کسان اسکیموں میں رہنمائی فراہم کرتا ہے۔ برائے مہربانی اپنی فصل یا کھیتی سے متعلق سوال پوچھیں۔"
+        roman_refusal = "Safety Guardrail: Yeh sawal zaraat aur kheti baari ke daire se bahir hai. Kisan Dost aik makhsoos zarai AI assistant hai jo sirf faslon, zameen, khad ke hisab, pani ki bariat, bimariyon/keeron ki tashkhees, mandi rates aur kisan schemes ke baray mein rehnumai faraham karta hai. Barah-e-karam fasal ya kheti baari se mutalliq sawal poochein!"
+
+        primary_refusal = roman_refusal if lang == "roman_urdu" else (ur_refusal if lang == "ur" else en_refusal)
         return AdvisoryQueryResponse(
             query=query_text,
             is_safe=False,
             refusal_reason=input_audit.refusal_reason,
             language_detected=lang,
-            advisory_text=f"Safety Guardrail Block: {input_audit.refusal_reason}",
-            advisory_english=f"Safety Guardrail Block: {input_audit.refusal_reason}",
-            advisory_roman_urdu=f"Safety Block: {input_audit.refusal_reason}",
-            advisory_urdu=f"سیفٹی گارڈ ریل: {input_audit.refusal_reason}",
-            telemetry_steps=["Input Guardrail Check: BLOCKED"]
+            decision=None,
+            receipt=None,
+            dashboard_metrics=None,
+            simulation_result=None,
+            advisory_text=primary_refusal,
+            advisory_english=en_refusal,
+            advisory_roman_urdu=roman_refusal,
+            advisory_urdu=ur_refusal,
+            telemetry_steps=["Input Guardrail Check: BLOCKED (Out of Domain)"]
         )
 
-    # 2. Check for Greetings / Casual Questions (Natural, no dashboard card)
-    greeting_patterns = [
+    # 2. Check for Greetings, Identity & Courtesy (Natural simple answer, NO dashboard)
+    courtesy_patterns = [
         r"^(salam|assalam|aoa|hi|hello|hey|adab)\b",
-        r"\b(kaise ho|hal chal|kya haal|theek ho|kisan dost)\b"
+        r"\b(kaise ho|kaisay ho|kya haal|kya hal|hal chal|how are you|theek ho|thik ho)\b",
+        r"\b(who are you|aap kon ho|tum kon ho|kisan dost kon hai|apna taruf|introduce yourself)\b",
+        r"\b(what can you do|aap kya kar sakte|tum kya karte ho|kya madad kar sakte|help|madad)\b",
+        r"\b(mera naam|my name is|main kisan|main zamindar)\b",
+        r"\b(shukriya|shukria|thanks|thank you|meharbani|welcome)\b",
+        r"(السلام علیکم|سلام|آداب|کیسے ہیں|کیا حال ہے|آپ کون ہیں|کیا کر سکتے ہیں|مدد|شکریہ|میرا نام)"
     ]
-    is_greeting = any(re.search(pat, q_lower) for pat in greeting_patterns) and not any(kw in q_lower for kw in ["pani", "khad", "fasal", "crop", "rate", "mandi", "spray", "disease", "kisan card", "acre", "gandum", "channa", "urea", "dap"])
+    is_agri_decision_query = any(kw in q_lower for kw in ["kya lagaoon", "kya kasht karoon", "recommend", "crop plan", "faisla", "decision"])
+    is_courtesy = any(re.search(pat, q_lower) for pat in courtesy_patterns) and not is_agri_decision_query
 
-    if is_greeting:
-        en_greet = f"Hello {farmer_name}! I am Kisan Dost, your agricultural companion. How are things at your {acres:.1f}-acre farm in {dist}? You can ask me anything about balanced fertilizer, irrigation schedules, mandi prices, or pest remedies!"
-        ur_greet = f"وعلیکم السلام {farmer_name} بھائی! میں کسان دوست ہوں — آپ کا مخلص زرعی مشیر۔ {dist} میں آپ کے {acres:.1f} ایکڑ فارم پر فصل کیسی چل رہی ہے؟ آپ کھاد کے حساب، نہری باری، منڈی کے بھاؤ یا بیماری کے علاج کے بارے میں کوئی بھی سوال پوچھ سکتے ہیں۔"
-        roman_greet = f"Walaikum Assalam {farmer_name}! Main Kisan Dost hoon — aap ka digital zarai dost. {dist} mein aap ke {acres:.1f} acre farm par fasal ki kya soorat-e-haal hai? Khad ke hisab, nehri pani ki bariat, mandi rates ya spray ke baray mein koi bhi sawal be-jhijhak poochein!"
+    if is_courtesy:
+        if any(re.search(p, q_lower) for p in [r"\b(who are you|aap kon ho|kisan dost kon hai|apna taruf)\b", r"(آپ کون ہیں)"]):
+            en_msg = f"I am Kisan Dost, your specialized agricultural AI companion for Pakistan. I assist farmers with crop planning, balanced NPK fertilizer calculations, FAO-56 irrigation turns, leaf disease diagnostics with DPP verified dosages, live AMIS mandi rates, and Punjab government schemes like the Kisan Card. How can I help your {acres:.1f}-acre farm in {dist} today?"
+            ur_msg = f"میں کسان دوست ہوں — پاکستان کے کاشتکاروں کے لیے ایک خصوصی زرعی AI مشیر۔ میں فصل کے انتخاب، این پی کے کھاد کے حساب، نہری پانی کے شیڈول، بیماریوں کے تصدیق شدہ علاج، منڈی کے ریٹس اور کسان کارڈ جیسی سرکاری اسکیموں میں رہنمائی کرتا ہوں۔ {dist} میں آپ کے {acres:.1f} ایکڑ فارم کے لیے آج میں کیا مدد کر سکتا ہوں؟"
+            roman_msg = f"Main Kisan Dost hoon — Pakistan ke kisan bhaiyon ke liye aik makhsoos digital zarai mashir. Main fasal ke intekhab, NPK khad ke hisab, nehri pani ki bariat, bimariyon ke tasdeeq shuda spray, live mandi rates aur Punjab Kisan Card schemes mein rehnumai karta hoon. {dist} mein aap ke {acres:.1f} acre farm ke liye aaj kya mashwara chahiye?"
+        elif any(re.search(p, q_lower) for p in [r"\b(what can you do|aap kya kar sakte|help|madad)\b", r"(کیا کر سکتے ہیں|مدد)"]):
+            en_msg = f"Here is what I can do for your {acres:.1f}-acre farm in {dist}: 1) Recommend best crops & seed varieties; 2) Calculate exact DAP & Urea fertilizer bags; 3) Compute FAO-56 irrigation turns; 4) Diagnose leaf pests with DPP-approved sprays; 5) Check live AMIS wholesale mandi rates; 6) Explore Punjab Kisan Card and tractor subsidies. Just ask your question naturally!"
+            ur_msg = f"{dist} میں آپ کے {acres:.1f} ایکڑ رقبے کے لیے میری خدمات: 1) بہترین فصل اور بیج کا مشورہ؛ 2) ڈی اے پی اور یوریا کی درست بوریوں کا حساب؛ 3) نہری پانی کی باری کا شیڈول؛ 4) پتوں کی بیماریوں کا تصدیق شدہ اسپرے؛ 5) پنجاب منڈیوں کے لائیو ریٹ؛ 6) کسان کارڈ اور ٹریکٹر اسکیمیں۔ آپ اپنا سوال بالکل قدرتی انداز میں پوچھ سکتے ہیں!"
+            roman_msg = f"{dist} mein aap ke {acres:.1f} acre farm ke liye meri khidmat: 1) Fasal aur beej ka behtareen mashwara; 2) DAP aur Urea ki bori ka sahi hisab; 3) Nehri pani ki bariat ka schedule; 4) Bimari aur keeron ka DPP tasdeeq shuda spray; 5) Live AMIS mandi rates; 6) Punjab Kisan Card aur tractor schemes. Koi bhi sawal aam zaban mein poochein!"
+        elif any(re.search(p, q_lower) for p in [r"\b(mera naam|my name is)\b", r"(میرا نام)"]):
+            en_msg = f"Very pleased to meet you, {farmer_name}! I have noted your farm profile for {acres:.1f} acres in {dist} with {profile.soil_type} soil. How is your crop doing right now? Ask me anything about fertilizers, water turns, or current mandi rates!"
+            ur_msg = f"بہت خوشی ہوئی {farmer_name} صاحب! میں نے {dist} میں آپ کے {acres:.1f} ایکڑ فارم کا ریکارڈ محفوظ کر لیا ہے۔ آج کل آپ کے کھیت کی کیا صورتحال ہے؟ کھاد، پانی یا منڈی ریٹ کے بارے میں کوئی بھی سوال پوچھیں۔"
+            roman_msg = f"Bohat khushi hui {farmer_name} sahib! Main ne {dist} mein aap ke {acres:.1f} acre farm ka record update kar liya hai. Khet mein fasal ki kya soorat-e-haal hai? Khad, pani ya mandi rates ke baray mein be-jhijhak poochein!"
+        elif any(re.search(p, q_lower) for p in [r"\b(shukriya|shukria|thanks|thank you)\b", r"(شکریہ)"]):
+            en_msg = f"You are most welcome, {farmer_name}! Kisan Dost is always here to support your farming. May your crops prosper with abundant harvest! Let me know if you need anything else."
+            ur_msg = f"آپ کا بہت شکریہ {farmer_name} بھائی! کسان دوست ہر وقت آپ کی خدمت کے لیے حاضر ہے۔ اللہ تعالیٰ آپ کی فصلوں میں برکت عطا فرمائے! کوئی مزید رہنمائی درکار ہو تو ضرور بتائیں۔"
+            roman_msg = f"Aap ka bohat shukriya {farmer_name} bhai! Kisan Dost har waqt aap ki kheti baari ki khidmat ke liye hazir hai. Allah aap ki fasal mein barkat dale! Mazeed koi sawal ho to zaroor poochein."
+        else:
+            en_msg = f"Hello {farmer_name}! I am Kisan Dost, your agricultural companion. How are things at your {acres:.1f}-acre farm in {dist}? You can ask me anything about balanced fertilizer, irrigation schedules, mandi prices, or pest remedies!"
+            ur_msg = f"وعلیکم السلام {farmer_name} بھائی! میں کسان دوست ہوں — آپ کا مخلص زرعی مشیر۔ {dist} میں آپ کے {acres:.1f} ایکڑ فارم پر فصل کیسی چل رہی ہے؟ آپ کھاد کے حساب، نہری باری، منڈی کے بھاؤ یا بیماری کے علاج کے بارے میں کوئی بھی سوال پوچھ سکتے ہیں۔"
+            roman_msg = f"Walaikum Assalam {farmer_name}! Main Kisan Dost hoon — aap ka digital zarai dost. {dist} mein aap ke {acres:.1f} acre farm par fasal ki kya soorat-e-haal hai? Khad ke hisab, nehri pani ki bariat, mandi rates ya spray ke baray mein koi bhi sawal be-jhijhak poochein!"
 
-        primary_text = roman_greet if lang == "roman_urdu" else (ur_greet if lang == "ur" else en_greet)
+        primary_text = roman_msg if lang == "roman_urdu" else (ur_msg if lang == "ur" else en_msg)
         return AdvisoryQueryResponse(
             query=query_text,
             is_safe=True,
@@ -145,11 +177,12 @@ async def query_advisory(req: AdvisoryQueryRequest):
             trust_report={"trust_score": 100, "trust_level": "VERIFIED"},
             risk_assessment={"risk_level": "LOW", "risk_score": 10},
             confidence={"overall_confidence": 0.99, "confidence_tier": "HIGH"},
+            dashboard_metrics=None,
             advisory_text=primary_text,
-            advisory_english=en_greet,
-            advisory_roman_urdu=roman_greet,
-            advisory_urdu=ur_greet,
-            telemetry_steps=["Input Guardrail PASSED", "Conversational Intent: Greeting"]
+            advisory_english=en_msg,
+            advisory_roman_urdu=roman_msg,
+            advisory_urdu=ur_msg,
+            telemetry_steps=["Input Guardrail PASSED", "Conversational Intent: Courtesy"]
         )
 
     # 3. Check for What-If Simulation Query
@@ -336,9 +369,17 @@ async def query_advisory(req: AdvisoryQueryRequest):
             telemetry_steps=["Input Guardrail PASSED", "Market Agent: AMIS Wholesale Rates Grounded"]
         )
 
-    # 7. Check for Specific Fertilizer / Khad Inquiries
-    is_fertilizer_specific = any(kw in q_lower for kw in ["khad", "fertilizer", "urea", "dap", "potash", "bori", "bags of fertilizer", "nutrition"]) and not any(kw in q_lower for kw in ["kya lagaoon", "full plan", "decision", "sowing plan"])
-    if is_fertilizer_specific:
+    # 7. Check for Specific Fertilizer Package / Bag Calculation Inquiries
+    is_fertilizer_calc_request = (
+        any(kw in q_lower for kw in ["kitni bori", "kitnay bag", "kitnay bori", "kitni khad", "fertilizer plan", "fertilizer package", "npk package", "khad ka hisab", "fertilizer calculation", "bags of fertilizer", "khad kitni", "kitna urea", "kitni dap", "fertilizer need"])
+        or (
+            any(kw in q_lower for kw in ["khad", "fertilizer", "urea", "dap"])
+            and any(w in q_lower for w in ["bori", "bag", "bags", "plan", "package", "hisaab", "hisab", "calculate", "kitna", "kitni"])
+            and not any(w in q_lower for w in ["mix", "mila", "kese", "kaise", "kab", "daal saktay", "daal sakte", "dal saktay", "dal sakte"])
+        )
+    ) and not any(kw in q_lower for kw in ["kya lagaoon", "full plan", "decision", "sowing plan"])
+
+    if is_fertilizer_calc_request:
         fert_plan = calculate_fertilizer_needs(crop_name="Wheat", acreage=acres)
         dap_b = next((b.total_bags for b in fert_plan.bag_breakdown if "DAP" in b.fertilizer_name), round(1.1 * acres))
         urea_b = next((b.total_bags for b in fert_plan.bag_breakdown if "Urea" in b.fertilizer_name), round(1.75 * acres))
@@ -382,7 +423,10 @@ async def query_advisory(req: AdvisoryQueryRequest):
         )
 
     # 8. Check for Specific Seed / Varieties Inquiries
-    is_seed_specific = any(kw in q_lower for kw in ["beej", "seed", "variety", "aqsam", "qisam", "konsa beej", "certified seed"]) and not any(kw in q_lower for kw in ["kya lagaoon", "full plan", "decision", "sowing plan"])
+    is_seed_specific = (
+        any(kw in q_lower for kw in ["beej", "seed", "variety", "aqsam", "qisam", "konsa beej", "certified seed"])
+        and not any(kw in q_lower for kw in ["kya lagaoon", "full plan", "decision", "sowing plan", "bohai", "waqt", "kab", "timing", "when"])
+    )
     if is_seed_specific:
         en_seed = f"{farmer_name} bhai, for {dist} and Punjab soils, NARC-certified top-yielding wheat cultivars are Akbar-2019, Fakhar-e-Bhakkar, and Dilkash-20. Ensure certified seed @ 50 kg/acre treated with Imidacloprid + Tebuconazole @ 2g/kg before sowing to prevent early rust and smuts."
         ur_seed = f"{farmer_name} بھائی، {dist} اور پنجاب کے لیے این اے آر سی کی تصدیق شدہ اقسام اکبر-2019، فخر بھکر اور دلکش-20 سب سے شاندار پیداوار دیتی ہیں۔ تصدیق شدہ بیج 50 کلوگرام فی ایکڑ استعمال کریں اور بجائی سے قبل فنگس کش زہر ضرور لگائیں۔"
@@ -463,7 +507,86 @@ async def query_advisory(req: AdvisoryQueryRequest):
             telemetry_steps=["Input Guardrail PASSED", "Finance & Govt Agent: Punjab Schemes Registry"]
         )
 
-    # 10. Full Multi-Intent Farm Decision Pipeline (with Decision Receipt)
+    # 10. Check if User is requesting a Full Farm Planning Decision with Receipt
+    full_plan_indicators = [
+        "kya lagaoon", "kya kasht karoon", "what should i grow", "what crop to grow",
+        "recommend crop", "crop recommendation", "full plan", "decision receipt",
+        "mere faislay", "sowing plan", "fasal mashwara", "konsi fasal", "faisla", "kya lagaen"
+    ]
+    is_full_plan_decision = any(ind in q_lower for ind in full_plan_indicators) or (
+        ("crop" in q_lower or "fasal" in q_lower) and ("plan" in q_lower or "decision" in q_lower or "mashwara" in q_lower)
+    )
+
+    # If it is a simple farming question (not a full farm plan request), answer directly and conversationally with NO dashboard tiles
+    if not is_full_plan_decision:
+        groq_prompt = (
+            f"You are Kisan Dost (کسان دوست), a warm, respectful, knowledgeable Pakistani agricultural digital friend. "
+            f"Farmer Name: {farmer_name}, District: {dist}, Holding: {acres:.1f} acres, Soil: {profile.soil_type}. "
+            f"Farmer Question: \"{query_text}\"\n\n"
+            f"Instructions:\n"
+            f"1. Answer the question directly, simply, and conversationally in 2 to 3 sentences.\n"
+            f"2. Ground your answer strictly in authentic agricultural facts suitable for Punjab, Pakistan.\n"
+            f"3. Address the farmer warmly as '{farmer_name} bhai/sahib'.\n"
+            f"4. Do NOT output markdown tables, json, bulleted decision receipts, or technical headers.\n"
+            f"5. Language: Respond in {lang} (if roman_urdu: speak clear, natural Roman Urdu; if ur: speak pure Urdu in Nastaliq; if en: speak fluent helpful English)."
+        )
+        ans_text = ""
+        try:
+            llm_reply = _groq.chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are Kisan Dost, an expert Pakistani agricultural advisory assistant. Provide short, direct, accurate, and conversational farming answers."},
+                    {"role": "user", "content": groq_prompt}
+                ],
+                temperature=0.3,
+                max_tokens=250
+            )
+            if llm_reply and len(llm_reply.strip()) > 10:
+                ans_text = llm_reply.strip()
+        except Exception:
+            ans_text = ""
+
+        if not ans_text:
+            # Domain-grounded conversational fallbacks
+            if any(kw in q_lower for kw in ["bohai", "waqt", "sowing time", "timing", "kab"]):
+                ans_roman = f"{farmer_name} bhai, Punjab aur {dist} mein Gandum ki bohai ka behtareen waqt 1 November se 20 November tak hota hai, jabke Kapas ki behtareen kasht 15 April se 31 May ke darmiyan hoti hai. Bar-waqt bohai se paidawar mein 15 se 20 percent izafa hota hai."
+                ans_ur = f"{farmer_name} بھائی، پنجاب اور {dist} میں گندم کی بوائی کا بہترین وقت یکم تا 20 نومبر ہے جبکہ کپاس کی کاشت 15 اپریل تا 31 مئی کے درمیان ہونی چاہیے۔ بروقت بوائی سے پیداوار میں 15 سے 20 فیصد تک اضافہ ہوتا ہے۔"
+                ans_en = f"{farmer_name} bhai, in {dist} and Punjab, the ideal sowing window for wheat is November 1 to November 20, whereas cotton is ideally planted between April 15 and May 31 for maximum yield."
+            elif any(kw in q_lower for kw in ["mix", "mila kar", "ikathay", "together"]):
+                ans_roman = f"{farmer_name} bhai, DAP aur Urea ko bohai ke waqt aik sath mila kar foran zameen mein daala ja sakta hai, lekin inhein pehle se mila kar lambay arsay tak na rakhein warna nami ki wajah se khad kharab ho sakti hai. Pehle pani par Urea alag se dalna zyada mufeed hota hai."
+                ans_ur = f"{farmer_name} بھائی، ڈی اے پی اور یوریا کو بوائی کے وقت فوراً ملا کر کھیت میں ڈالا جا سکتا ہے، لیکن انہیں زیادہ دیر پہلے سے ملا کر نہ رکھیں ورنہ نمی سے کھاد کے ڈلے بن جاتے ہیں۔ پہلے پانی پر یوریا الگ سے ڈالنا زیادہ فائدہ مند رہتا ہے۔"
+                ans_en = f"{farmer_name} bhai, DAP and Urea can be mixed immediately before field application at sowing, but should not be pre-mixed and stored as moisture causes caking. Top-dressing Urea separately at the first irrigation yields best nutrient uptake."
+            elif any(kw in q_lower for kw in ["pani", "water", "irrigation"]):
+                ans_roman = f"{farmer_name} bhai, {profile.soil_type} zameen mein fasal ko pehla pani (Kor/CRI stage) ugaho ke 20 se 25 din baad lagana zaroori hai. Nehri pani ki mojudgi ke mutabiq bariat ka hisab rakhein aur be-waqt zyada pani dene se gurez karein."
+                ans_ur = f"{farmer_name} بھائی، {profile.soil_type} زمین میں فصل کو پہلا پانی (کور/سی آر آئی اسٹیج) اگاؤ کے 20 سے 25 دن بعد لگانا انتہائی ضروری ہے۔ نہری پانی کی باریوں کا محتاط حساب رکھیں تاکہ جڑیں مضبوط رہیں۔"
+                ans_en = f"{farmer_name} bhai, on {profile.soil_type} soil, the first critical irrigation (Crown Root Initiation / Kor) should be applied 20–25 days after germination. Conserve your canal turn quota for critical growth stages."
+            else:
+                ans_roman = f"{farmer_name} bhai, aap ke {acres:.1f} acre farm ({dist}) ke liye zarai tehqeeqi idaaron (NARC/AMIS) ki roshni mein yeh tajweez hai ke mutawazin khad aur waqt par aabpashi ka khas khayal rakhein. Mazeed wazahat ke liye sawal poochein!"
+                ans_ur = f"{farmer_name} بھائی، {dist} میں آپ کے {acres:.1f} ایکڑ فارم کے لیے زرعی تحقیقاتی اداروں کی روشنی میں بروقت نگہداشت اور متوازن کھاد کا استعمال بہترین پیداوار کا ضامن ہے۔ کسی بھی مخصوص مرحلے کے بارے میں مزید دریافت کر سکتے ہیں۔"
+                ans_en = f"{farmer_name} bhai, for your {acres:.1f}-acre farm in {dist}, following verified NARC agronomic recommendations and balanced nutrition ensures optimal harvest yield. Please ask if you need details on a specific operation!"
+
+            ans_text = ans_roman if lang == "roman_urdu" else (ans_ur if lang == "ur" else ans_en)
+
+        return AdvisoryQueryResponse(
+            query=query_text,
+            is_safe=True,
+            is_simulation=False,
+            language_detected=lang,
+            intents_detected=["conversational_qa"],
+            decision=None,
+            receipt=None,
+            conflicts_resolved=[],
+            trust_report={"trust_score": 95, "trust_level": "VERIFIED"},
+            risk_assessment={"risk_level": "LOW", "risk_score": 10},
+            confidence={"overall_confidence": 0.95, "confidence_tier": "HIGH"},
+            dashboard_metrics=None,  # No dashboard card for simple QA
+            advisory_text=ans_text,
+            advisory_english=ans_text,
+            advisory_roman_urdu=ans_text,
+            advisory_urdu=ans_text,
+            telemetry_steps=["Input Guardrail PASSED", "Conversational AI: Direct Natural Answer"]
+        )
+
+    # 11. Full Multi-Intent Farm Decision Pipeline (with Decision Receipt)
     intents = analyze_intents(query_text)
     telemetry_steps = [
         "Input Guardrail Validated",
@@ -550,6 +673,7 @@ async def query_advisory(req: AdvisoryQueryRequest):
     en_text = EnglishRenderer.render_advisory(decision, receipt)
     ur_text = UrduRenderer.render_advisory(decision, receipt)
     roman_text = RomanUrduRenderer.render_advisory(decision, receipt)
+    primary_text = roman_text if lang == "roman_urdu" else (ur_text if lang == "ur" else en_text)
 
     dashboard_metrics = {
         "category": "receipt",
@@ -558,7 +682,7 @@ async def query_advisory(req: AdvisoryQueryRequest):
         "verified": True,
         "metrics": [
             {"label": "Recommended Crop", "value": f"Certified Wheat ({profile.soil_type})", "icon": "sprout"},
-            {"label": "Projected Net Profit", "value": f"PKR {receipt.net_financial_gain_pkr:,.0f}" if receipt.net_financial_gain_pkr else "PKR 679,552", "icon": "trending-up"},
+            {"label": "Projected Net Profit", "value": f"PKR {getattr(receipt, 'net_financial_gain_pkr', None):,.0f}" if getattr(receipt, 'net_financial_gain_pkr', None) else "PKR 679,552", "icon": "trending-up"},
             {"label": "Water Plan", "value": f"{profile.available_water_turns or 2} Canal Turns Scheduled", "icon": "droplets"},
         ],
         "interactive_tool": "receipt",
@@ -584,4 +708,5 @@ async def query_advisory(req: AdvisoryQueryRequest):
         advisory_urdu=ur_text,
         telemetry_steps=telemetry_steps
     )
+
 

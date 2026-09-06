@@ -274,92 +274,24 @@ export const ZaraiChatBot: React.FC = () => {
         ? (res.advisory_urdu || res.advisory_text)
         : (language === 'roman_urdu' ? (res.advisory_roman_urdu || res.advisory_text) : (res.advisory_english || res.advisory_text));
 
-      // Generate full interactive widgets only when strictly necessary:
-      // 1. What-If Simulations
-      // 2. Formal Crop Planning Decisions with receipt
+      // 1. If blocked by safety guardrail, STRICTLY suppress any dashboard metrics or tool cards!
       const qLower = query.toLowerCase();
       let detectedCard: DashboardCardType | undefined = undefined;
+      let metrics: any = undefined;
 
-      if (res.is_simulation) {
-        detectedCard = 'whatif';
-      } else if (res.receipt && (qLower.includes('kya lagaoon') || qLower.includes('plan') || qLower.includes('faisla') || qLower.includes('decision') || qLower.includes('sowing'))) {
-        detectedCard = 'receipt';
-      }
+      if (!res.is_safe) {
+        detectedCard = undefined;
+        metrics = undefined;
+      } else {
+        if (res.is_simulation) {
+          detectedCard = 'whatif';
+        } else if (res.receipt && /kya lagaoon|kya kasht|recommend crop|sowing plan|faisla|decision|mere faislay|full plan/i.test(qLower)) {
+          detectedCard = 'receipt';
+        }
 
-      // If backend didn't attach dashboard_metrics, construct authentic grounded fallback metrics
-      let metrics = res.dashboard_metrics;
-      if (!metrics && !res.is_simulation && !detectedCard) {
-        if (qLower.includes('mandi') || qLower.includes('rate') || qLower.includes('bhaow') || qLower.includes('price')) {
-          metrics = {
-            category: 'mandi',
-            title: `${profile.district || 'Multan'} Ghalla Mandi Rates`,
-            source: 'AMIS Punjab (Official)',
-            verified: true,
-            metrics: [
-              { label: 'Modal Benchmark', value: 'PKR 3,950 / maund' },
-              { label: 'Wholesale Range', value: 'PKR 3,850 – 4,050' },
-              { label: 'Selling Advice', value: 'Stable; hold 2-3 weeks' }
-            ],
-            interactive_tool: 'mandi',
-            tool_button_label: 'Open Live Mandi Price Board'
-          };
-        } else if (qLower.includes('pani') || qLower.includes('water') || qLower.includes('irrigation')) {
-          metrics = {
-            category: 'irrigation',
-            title: 'FAO-56 Irrigation Schedule',
-            source: 'FAO-56 Penman-Monteith Model',
-            verified: true,
-            metrics: [
-              { label: 'Critical Stage', value: 'CRI / Kor (20–25 DAS)' },
-              { label: 'Canal Turns', value: `${profile.available_water_turns || 2} Available Turns` },
-              { label: 'Nutrient Timing', value: '1–1.5 bags Urea at Turn 1' }
-            ],
-            interactive_tool: 'irrigation',
-            tool_button_label: 'Open Irrigation Calculator (FAO-56)'
-          };
-        } else if (qLower.includes('spray') || qLower.includes('whitefly') || qLower.includes('rust') || qLower.includes('bimari')) {
-          metrics = {
-            category: 'disease',
-            title: 'DPP Registered Pesticide Verification',
-            source: 'Department of Plant Protection (DPP)',
-            verified: true,
-            metrics: [
-              { label: 'Whitefly Active', value: 'Pyriproxyfen 10.8 EC @ 500ml/acre' },
-              { label: 'Rust Active', value: 'Nativo 75 WG @ 65g/acre' },
-              { label: 'Spray Window', value: 'Early morning / late evening' }
-            ],
-            interactive_tool: 'disease',
-            tool_button_label: 'Open Disease Doctor Scanner'
-          };
-        } else if (qLower.includes('khad') || qLower.includes('urea') || qLower.includes('dap') || qLower.includes('fertilizer')) {
-          const acres = profile.total_land_acres || 5;
-          metrics = {
-            category: 'crop',
-            title: `Balanced Fertilizer Plan (${acres} Acres)`,
-            source: 'NARC Agronomy Guidelines',
-            verified: true,
-            metrics: [
-              { label: 'DAP at Sowing', value: `${Math.round(1.1 * acres)} Bags (50kg)` },
-              { label: 'Urea across turns', value: `${Math.round(1.75 * acres)} Bags Split` },
-              { label: 'Est. Cost', value: `PKR ${(acres * 22000).toLocaleString()}` }
-            ],
-            interactive_tool: 'crop',
-            tool_button_label: 'Open Crop & Fertilizer Advisor'
-          };
-        } else if (qLower.includes('kisan card') || qLower.includes('scheme') || qLower.includes('tractor')) {
-          metrics = {
-            category: 'govt',
-            title: 'Punjab Govt Active Subsidies',
-            source: 'Govt of Punjab Agri Dept',
-            verified: true,
-            metrics: [
-              { label: 'CM Kisan Card', value: 'PKR 150,000 Interest-Free' },
-              { label: 'Green Tractor', value: 'PKR 1,000,000 Direct Subsidy' },
-              { label: 'Solar Tubewell', value: '50% Govt Co-Financing' }
-            ],
-            interactive_tool: 'govt',
-            tool_button_label: 'Explore Punjab Govt Schemes'
-          };
+        // Only attach dashboard metrics if backend explicitly provided it
+        if (res.dashboard_metrics) {
+          metrics = res.dashboard_metrics;
         }
       }
 
@@ -368,9 +300,9 @@ export const ZaraiChatBot: React.FC = () => {
         sender: 'agent',
         text: agentText,
         cardType: detectedCard,
-        receipt: res.receipt,
+        receipt: res.is_safe ? res.receipt : undefined,
         dashboardMetrics: metrics,
-        telemetry: res.telemetry_steps || ['Input Guardrail Validated', 'Triage Handoff', 'Specialist Investigated', 'Synthesis Receipt'],
+        telemetry: res.telemetry_steps || ['Input Guardrail Validated', 'Conversational AI'],
         intents: res.intents_detected,
         isRefusal: !res.is_safe,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -512,7 +444,7 @@ export const ZaraiChatBot: React.FC = () => {
                 </div>
 
                 {/* DASHBOARD-STYLE STAT TILE: Structured Authentic Facts inside Answer */}
-                {msg.dashboardMetrics && (
+                {!msg.isRefusal && msg.dashboardMetrics && (
                   <div className="bg-wheat-tint/30 border border-wheat-border/80 rounded-2xl p-3.5 space-y-2.5 shadow-2xs">
                     <div className="flex items-center justify-between gap-2 border-b border-wheat-border/60 pb-2 flex-wrap">
                       <div className="flex items-center gap-1.5">
@@ -561,7 +493,7 @@ export const ZaraiChatBot: React.FC = () => {
                 )}
 
                 {/* DYNAMIC INTERACTIVE TOOL EXPANSION */}
-                {expandedCardMsgId === msg.id && msg.dashboardMetrics?.interactive_tool && (
+                {!msg.isRefusal && expandedCardMsgId === msg.id && msg.dashboardMetrics?.interactive_tool && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs animate-in fade-in duration-200">
                     {msg.dashboardMetrics.interactive_tool === 'mandi' && <MandiView />}
                     {msg.dashboardMetrics.interactive_tool === 'irrigation' && <IrrigationAdvisorView />}
@@ -581,7 +513,7 @@ export const ZaraiChatBot: React.FC = () => {
                 )}
 
                 {/* DASHBOARD CARD EMBEDDING: Dynamic Rich Widgets in Chat */}
-                {msg.cardType === 'brief' && (
+                {!msg.isRefusal && msg.cardType === 'brief' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3 shadow-xs space-y-3">
                     <div className="flex items-center justify-between border-b border-earth-border/60 pb-2">
                       <span className="text-xs font-bold text-ajrak-black flex items-center gap-1.5">
@@ -598,7 +530,7 @@ export const ZaraiChatBot: React.FC = () => {
                 )}
 
                 {/* 1. Decision Receipt Card */}
-                {(msg.cardType === 'receipt' || msg.receipt) && msg.receipt && (
+                {!msg.isRefusal && msg.cardType === 'receipt' && msg.receipt && (
                   <div className="pt-1">
                     <DecisionReceiptCard
                       receipt={msg.receipt}
@@ -610,49 +542,49 @@ export const ZaraiChatBot: React.FC = () => {
                 )}
 
                 {/* 2. What-If Simulator Card */}
-                {msg.cardType === 'whatif' && (
+                {!msg.isRefusal && msg.cardType === 'whatif' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <WhatIfSimulator />
                   </div>
                 )}
 
                 {/* 3. Plant Pathology / Disease Doctor Card */}
-                {msg.cardType === 'disease' && (
+                {!msg.isRefusal && msg.cardType === 'disease' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <DiseaseDoctor />
                   </div>
                 )}
 
                 {/* 4. Mandi Wholesale Prices Board Card */}
-                {msg.cardType === 'mandi' && (
+                {!msg.isRefusal && msg.cardType === 'mandi' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <MandiView />
                   </div>
                 )}
 
                 {/* 5. Crop Advisor & NPK Plan Card */}
-                {msg.cardType === 'crop' && (
+                {!msg.isRefusal && msg.cardType === 'crop' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <CropAdvisorView />
                   </div>
                 )}
 
                 {/* 6. FAO-56 Irrigation Schedule Card */}
-                {msg.cardType === 'irrigation' && (
+                {!msg.isRefusal && msg.cardType === 'irrigation' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <IrrigationAdvisorView />
                   </div>
                 )}
 
                 {/* 7. Government Schemes & Subsidies Card */}
-                {msg.cardType === 'govt' && (
+                {!msg.isRefusal && msg.cardType === 'govt' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <GovtSchemesView />
                   </div>
                 )}
 
                 {/* 8. My Saved Decisions History Card */}
-                {msg.cardType === 'faislay' && (
+                {!msg.isRefusal && msg.cardType === 'faislay' && (
                   <div className="bg-white border border-earth-border rounded-2xl p-3.5 shadow-xs">
                     <MereFaislay />
                   </div>

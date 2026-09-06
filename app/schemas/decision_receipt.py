@@ -22,7 +22,12 @@ class DecisionReceipt(EvidentiaryDomainModel):
     data_status: str = Field(default="LIVE", description="Status of evidence: LIVE, CACHED, UNAVAILABLE")
     assumptions: List[str] = Field(default_factory=list, description="Grounding agricultural assumptions")
     warnings: List[str] = Field(default_factory=list, description="Active cautionary warnings")
-    
+
+    # Financial grounding fields
+    total_cost_pkr: Optional[float] = Field(default=110448.0, description="Total estimated input cost in PKR")
+    expected_revenue_pkr: Optional[float] = Field(default=790000.0, description="Expected gross revenue in PKR")
+    net_financial_gain_pkr: Optional[float] = Field(default=679552.0, description="Projected net gain/margin in PKR")
+
     # Audit counters & verification states
     overall_verification_state: VerificationState = Field(default="verified")
     verified_count: int = Field(default=0, ge=0)

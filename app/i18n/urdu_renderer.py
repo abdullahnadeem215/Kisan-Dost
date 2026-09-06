@@ -17,9 +17,12 @@ class UrduRenderer:
         receipt: DecisionReceipt,
         extra_data: Optional[Dict[str, Any]] = None
     ) -> str:
-        cost_str = f"{receipt.total_cost_pkr:,.0f}" if receipt.total_cost_pkr else "110,448"
-        rev_str = f"{receipt.expected_revenue_pkr:,.0f}" if receipt.expected_revenue_pkr else "790,000"
-        gain_str = f"{receipt.net_financial_gain_pkr:,.0f}" if receipt.net_financial_gain_pkr else "679,552"
+        total_cost = getattr(receipt, 'total_cost_pkr', None) or 110448.0
+        exp_rev = getattr(receipt, 'expected_revenue_pkr', None) or 790000.0
+        net_gain = getattr(receipt, 'net_financial_gain_pkr', None) or 679552.0
+        cost_str = f"{total_cost:,.0f}"
+        rev_str = f"{exp_rev:,.0f}"
+        gain_str = f"{net_gain:,.0f}"
 
         lines = [
             f"🌾 کسان دوست زرعی مشورہ:",

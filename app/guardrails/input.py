@@ -46,14 +46,109 @@ HUMAN_MEDICAL_PATTERNS = [
     r"\b(person|human|man|woman|child|baby)\b.*\b(drink|ingest|swallow|consume)\b"
 ]
 
-# Agricultural Keywords
+# Comprehensive Agricultural & Farming Keywords (English, Urdu, Roman Urdu)
 AGRI_KEYWORDS = [
-    "crop", "wheat", "cotton", "rice", "maize", "sugarcane", "potato", "tomato", "chickpea", "canola",
-    "mandi", "price", "fertilizer", "urea", "dap", "npk", "pesticide", "spray", "chemical", "dose", "dosage",
-    "pest", "disease", "rust", "blight", "yield", "acre", "maund", "canal", "water",
-    "irrigation", "tubewell", "kisan", "farm", "farmer", "agriculture", "recommend",
-    "soil", "weather", "rain", "temperature", "subsidy", "scheme", "loan", "seed",
-    "gandum", "kapas", "chawal", "fasal", "paani", "pani", "khaad", "khad", "ziyada", "نقصان", "فصل", "گندم", "پانی", "کھاد"
+    # Crops & Plants
+    "crop", "crops", "fasal", "faslon", "wheat", "gandum", "kanak", "cotton", "kapas", "phutti",
+    "rice", "chawal", "dhaan", "munji", "maize", "makai", "corn", "sugarcane", "kamad", "ganna",
+    "potato", "aloo", "alu", "tomato", "tamatar", "onion", "pyaz", "piaz", "chili", "mirch",
+    "garlic", "lehsan", "ginger", "adrak", "mango", "aam", "citrus", "kino", "kinnow", "malta",
+    "guava", "amrood", "banana", "kela", "mustard", "sarson", "raya", "canola", "toria", "taramira",
+    "sunflower", "surajmukhi", "sesame", "til", "chickpea", "channa", "chana", "gram", "lentil",
+    "masoor", "moong", "mash", "pulses", "daal", "dal", "fodder", "chara", "berseem", "barseem",
+    "lucerne", "shaftal", "jowar", "chari", "bajra", "millet", "sorghum", "tobacco", "tambaku",
+    "beej", "seed", "seeds", "seedling", "paneeri", "germination", "ugao", "variety", "varieties",
+    "aqsam", "qisam", "hybrid", "cultivar", "narc", "parc",
+
+    # Fertilizers & Soil
+    "fertilizer", "fertilizers", "khaad", "khad", "urea", "dap", "npk", "potash", "sop", "mop",
+    "nitrophos", "can", "ammonium", "ssp", "tsp", "zinc", "boron", "sulfur", "sulphur", "gypsum",
+    "compost", "gobar", "manure", "organic", "soil", "mitti", "zameen", "zamin", "land",
+    "acre", "acres", "killa", "bigha", "kanal", "marla", "loam", "mera", "clay", "chikni",
+    "sandy", "raitili", "saline", "kallar", "shor", "ph", "fertility", "zarkhez", "zarkhezi",
+    "nutrition", "nutrient", "deficiency", "kami", "bag", "bags", "bori", "boriyan",
+
+    # Water, Irrigation & Weather
+    "water", "pani", "paani", "irrigation", "aabpashi", "canal", "nehar", "nehri", "turn",
+    "turns", "wari", "bariat", "tubewell", "tube-well", "boring", "diesel", "solar", "drip",
+    "sprinkler", "flood", "furrow", "bed", "khal", "warabandi", "weather", "mausam", "rain",
+    "barish", "barsat", "monsoon", "temperature", "garmi", "sardi", "darja hararat", "humidity",
+    "nami", "frost", "pala", "fog", "dhund", "smog", "heatwave", "loo", "hail", "olay",
+    "storm", "toofan", "forecast", "peshgoi", "et0", "evapotranspiration",
+
+    # Pest, Diseases, Plant Protection
+    "pest", "pests", "keera", "keeray", "kire", "insect", "insects", "sundi", "caterpillar",
+    "bollworm", "armyworm", "pink bollworm", "gulabi", "lashkari", "whitefly", "sufaid makhi",
+    "chitti makhi", "aphid", "tela", "kala tela", "sabz tela", "jassid", "thrips", "mites",
+    "locust", "tidi", "fungus", "phaphundi", "rust", "kungi", "yellow rust", "peeli kungi",
+    "brown rust", "blight", "jhulsaao", "early blight", "late blight", "rot", "galan",
+    "root rot", "collar rot", "wilt", "murjhana", "virus", "leaf curl", "clcv", "nematode",
+    "smut", "kangiari", "powdery mildew", "downy mildew", "pesticide", "pesticides", "spray",
+    "zehar", "dawa", "dawayi", "fungicide", "insecticide", "weedicide", "herbicide", "jariboti",
+    "ghas", "weed", "weeds", "godi", "dosage", "dose", "miqdar", "tanki", "nozzle", "dpp",
+
+    # Market, Economics & Government Schemes
+    "mandi", "market", "ghalla", "ghalla mandi", "rate", "rates", "bhaow", "bhaw", "price",
+    "prices", "qeemat", "cost", "kharcha", "lagat", "profit", "munafa", "bachat", "revenue",
+    "amdani", "loss", "nuqsan", "nuksan", "yield", "paidawar", "maund", "maunds", "mann",
+    "kg", "kilo", "ton", "quintal", "sell", "bechna", "furrokt", "khareedna", "buy", "hold",
+    "rokhna", "store", "storage", "aarth", "aarhti", "commission", "kisan card", "green tractor",
+    "subsidy", "subsidies", "imdad", "scheme", "schemes", "loan", "qarz", "zarai bank", "ztbl",
+    "bima", "takaful", "sarkari", "punjab agriculture", "amis",
+
+    # Farm Operations & General Farming Terms
+    "farm", "farmer", "farmers", "kisan", "kashtkar", "zamindar", "dehqan", "agriculture",
+    "agricultural", "agri", "zarai", "zaraat", "khet", "field", "fields", "rabi", "kharif",
+    "season", "sowing", "bohai", "bovai", "harvest", "harvesting", "katai", "cultivation",
+    "kasht", "plough", "plowing", "hal", "sohaga", "leveler", "laser leveler",
+
+    # Urdu Script (Nastaliq)
+    "کسان", "زراعت", "فصل", "فصلوں", "گندم", "کپاس", "چاول", "مکئی", "کماد", "آلو", "ٹماٹر",
+    "پیاز", "آم", "کھاد", "یوریا", "ڈی اے پی", "پانی", "نہری", "ٹیوب ویل", "سپرے", "کیڑا",
+    "کیڑے", "سنڈی", "سفید مکھی", "تیلا", "کنگی", "جھلسائو", "منڈی", "ریٹ", "بھاؤ", "پیداوار",
+    "ایکڑ", "من", "سبسڈی", "کسان کارڈ", "ٹریکٹر", "قرضہ", "بیج", "بیماری", "علاج", "نقصان",
+    "منافع", "خرچہ", "بارش", "موسم", "گرمی", "زمین", "مٹی", "بوائی", "کٹائی", "زرعی"
+]
+
+# Conversational Courtesy & Identity Patterns (Allowed simple conversational queries)
+COURTESY_AND_IDENTITY_PATTERNS = [
+    r"^(hi|hello|hey|salam|assalam|aoa|adab|namaste)\b",
+    r"\b(kaise|kaisay|kese|kesay)\s+(ho|hain|hn)\b",
+    r"\b(kya|kia)\s+(haal|hal|chal)\b",
+    r"\b(how are you|how r u|theek ho|thik ho|theek hain|thik hain)\b",
+    r"\b(who are you|who r u|what are you)\b",
+    r"\b(aap|tum|ap)\s+(kon|kaun|kis|koun)\b",
+    r"\b(kisan dost)\s+(kon|kaun|kis|koun)\b",
+    r"\b(what can you do|what do you do)\b",
+    r"\b(kya|kia)\s*(kar|kr)\s*(saktay|sakte|sakti|skte|skty|sktay)\b",
+    r"\b(aap|tum|ap)\s+(kya|kia)\s*(kar|karte|krte|kr)\b",
+    r"\b(kya|kia)\s*(madad|help)\b",
+    r"\b(apna|apni)\s+(taruf|taaruf|ta'ruf|intro|introduction)\b",
+    r"\b(introduce yourself|tell me about yourself)\b",
+    r"\b(mera naam|my name is|main kisan|main zamindar)\b",
+    r"\b(shukriya|shukria|thanks|thank you|meharbani|welcome|jazakallah)\b",
+    r"^(ok|theek hai|thik hai|acha|achha|sahi hai|haan|yes|no|nahi)\b",
+    r"(السلام علیکم|سلام|آداب|کیسے ہیں|کیا حال ہے|آپ کون ہیں|آپ کون ہو|کیا کر سکتے ہیں|کیا کر سکتے ہو|مدد|شکریہ|میرا نام|تعارف)"
+]
+
+# Explicit Out-of-Domain Block Patterns
+EXPLICIT_OFF_TOPIC_PATTERNS = [
+    # Politics & Non-agri Government
+    r"\b(prime minister|wazir e azam|nawaz sharif|imran khan|bilawal|shehbaz|parliament|national assembly|election|elections|vote|pti|pmln|ppp|president|trump|biden|modi|politics|siyasat)\b",
+    r"(سیاست|وزیر اعظم|عمران خان|نواز شریف|الیکشن)",
+    # Sports & Games
+    r"\b(cricket|babar azam|virat kohli|shaheen afridi|psl|ipl|world cup|football|messi|ronaldo|fifa|tennis|hockey|match score|cricket score|pubg|free fire|ludo)\b",
+    r"(کرکٹ|میچ|فٹ بال|ورلڈ کپ)",
+    # Entertainment, Movies, Celebrity
+    r"\b(movie|film|cinema|actor|actress|song|music|drama|hollywood|bollywood|lollywood|netflix|celebrity|hero|heroine|love story|shayari|poetry|romantic)\b",
+    r"(فلم|گانا|ڈرامہ|شاعری)",
+    # Coding, Tech & Hacking
+    r"\b(python|javascript|java|c\+\+|html|css|react|coding|programming|github|algorithm|hack|hacking|software|windows|android|iphone|laptop repair|computer repair)\b",
+    # Crypto & Speculative Finance
+    r"\b(bitcoin|crypto|cryptocurrency|ethereum|forex|stock exchange|stock market|trading|nft|dollar rate|currency rate)\b",
+    # General non-agri trivia & science
+    r"\b(quantum|black hole|capital of|speed of light|einstein|planet mars|universe|pythagoras|solve equation|essay on|recipe for cake|recipe for biryani|how to cook)\b",
+    r"\b(car engine|bike repair|mobile phone price|smartphone to buy)\b"
 ]
 
 
@@ -98,25 +193,42 @@ class InputGuardrail:
                     sanitized_prompt=prompt_clean
                 )
 
-        # 3. Topic Relevance Check (Generous baseline matching)
-        has_agri_context = any(kw in prompt_lower for kw in AGRI_KEYWORDS)
-        greetings = ["hi", "hello", "assalam", "salam", "help", "kisan", "dost", "aoa", "hey", "adab", "آؤ", "سلام", "کیسے"]
-        is_greeting = any(g in prompt_lower for g in greetings) or len(prompt_lower.split()) <= 2
-
-        if not has_agri_context and not is_greeting:
-            off_topic_indicators = ["quantum", "crypto", "bitcoin", "movie", "hollywood", "recipe for cake", "python script to hack"]
-            if any(ind in prompt_lower for ind in off_topic_indicators):
+        # 3. Explicit Out-of-Domain Pattern Check
+        for pattern in EXPLICIT_OFF_TOPIC_PATTERNS:
+            if re.search(pattern, prompt_lower):
                 return InputGuardrailResult(
                     is_allowed=False,
                     blocked_category="OFF_TOPIC",
-                    reason="Query is unrelated to farming, agronomy, mandi prices, or agricultural decision support.",
+                    reason="Yeh sawal zaraat aur kheti baari se mutalliq nahi hai. Kisan Dost sirf faslon, zameen, khad, bimari, mandi rates aur kisan schemes ke baray mein rehnumai faraham karta hai.",
                     sanitized_prompt=prompt_clean
                 )
 
+        # 4. Conversational Courtesy & Identity Check (Allowed for simple natural response)
+        is_courtesy = any(re.search(pat, prompt_lower) for pat in COURTESY_AND_IDENTITY_PATTERNS)
+        if is_courtesy:
+            return InputGuardrailResult(
+                is_allowed=True,
+                blocked_category=None,
+                reason="Input is a conversational courtesy or identity query.",
+                sanitized_prompt=prompt_clean
+            )
+
+        # 5. Agricultural Topic Relevance Check
+        # Check if any agri keyword or sub-word appears
+        has_agri_context = any(re.search(r"\b" + re.escape(kw) + r"\b", prompt_lower) if len(kw) <= 4 else kw in prompt_lower for kw in AGRI_KEYWORDS)
+        if has_agri_context:
+            return InputGuardrailResult(
+                is_allowed=True,
+                blocked_category=None,
+                reason="Input prompt passed all safety and agricultural relevance checks.",
+                sanitized_prompt=prompt_clean
+            )
+
+        # 6. Fallback: If neither courtesy nor agricultural context, it is strictly out of domain!
         return InputGuardrailResult(
-            is_allowed=True,
-            blocked_category=None,
-            reason="Input prompt passed all safety and relevance checks.",
+            is_allowed=False,
+            blocked_category="OFF_TOPIC",
+            reason="Yeh sawal zaraat aur kheti baari se mutalliq nahi hai. Kisan Dost sirf faslon, zameen, khad, bimari, mandi rates aur kisan schemes ke baray mein rehnumai faraham karta hai.",
             sanitized_prompt=prompt_clean
         )
 
