@@ -7,6 +7,8 @@ import { DiseaseDiagnosticResult } from './types';
 
 export interface GeminiDiagnosisResponse {
   is_farming_related: boolean;
+  is_plant_present?: boolean;
+  detected_object?: string;
   refusal_reason_roman_urdu?: string | null;
   refusal_reason_urdu?: string | null;
   refusal_reason_en?: string | null;
@@ -26,18 +28,18 @@ export interface GeminiDiagnosisResponse {
 }
 
 export function getStoredGeminiApiKey(): string {
-  return localStorage.getItem('kisan_dost_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
+  return import.meta.env.VITE_GEMINI_API_KEY || '';
 }
 
-export function setStoredGeminiApiKey(key: string): void {
-  localStorage.setItem('kisan_dost_gemini_api_key', key.trim());
+export function setStoredGeminiApiKey(_key: string): void {
+  // Deprecated: No API key stored in browser storage
 }
 
 export async function diagnoseImageWithGemini(
   base64DataUrl: string,
   cropHint?: string,
   customApiKey?: string
-): Promise<{ result?: DiseaseDiagnosticResult; raw?: GeminiDiagnosisResponse; isRefused?: boolean; refusalMessage?: string }> {
+): Promise<{ result?: DiseaseDiagnosticResult; raw?: GeminiDiagnosisResponse; isRefused?: boolean; refusalMessage?: string; detectedObject?: string }> {
   const apiKey = (customApiKey || getStoredGeminiApiKey()).trim();
   if (!apiKey) {
     throw new Error('MISSING_KEY');
@@ -52,20 +54,35 @@ export async function diagnoseImageWithGemini(
   const base64Data = match[2];
 
   const systemPrompt = `
-You are the Senior Agricultural Plant Pathologist & Entomologist for Kisan Dost (Pakistan).
+You are the Senior Agricultural Plant Pathologist & Computer Vision Inspector for Kisan Dost (Pakistan).
 Examine this uploaded photograph to diagnose crop disease, nutritional stress, or insect pest infestation.
 
-CRITICAL FIRST RULE - AGRICULTURAL DOMAIN GUARDRAIL:
-First evaluate: Is this photograph genuinely related to farming, agricultural crops, field plants, leaves, stems, roots, orchards, soil, or farm pests?
-- IF NON-FARMING (e.g. human face, selfie, pet cat/dog, furniture, car, electronic device, room interior, document, medical image):
-  You MUST set "is_farming_related": false.
-  Set "refusal_reason_roman_urdu": "Yeh tasveer kisi fasal ya paudhay ki nahi hai. Kisan Dost sirf zaraat aur kheti baari se mutalliq tasveeron ki tashkhees karta hai. Barah-e-karam fasal ke pattay ya mutasira hissay ki saaf tasveer upload karein."
-  Set "refusal_reason_urdu": "یہ تصویر کسی فصل یا پودے کی نہیں ہے۔ کسان دوست صرف زراعت اور کھیتی باڑی سے متعلق پودوں اور پتوں کی تشخیص کرتا ہے۔ برائے مہربانی فصل کے پتے یا کیڑے کی تصویر اپلوڈ کریں۔"
-  Set "refusal_reason_en": "This image is not related to farming or crops. Kisan Dost only inspects agricultural crops, plant leaves, and farm pests. Please upload a clear photo of an affected leaf or plant."
-  Do NOT attempt to diagnose non-farming items.
+CRITICAL FIRST RULE - STRICT OBJECT IDENTIFICATION (PLANT VS NON-PLANT):
+First, look at the uploaded image and identify what object or scene is shown.
+You MUST evaluate: Is there an actual, real, living agricultural plant, crop leaf, stem, fruit, orchard tree, or farm pest clearly visible as the primary subject?
 
-- IF FARMING/CROP/PLANT:
-  Set "is_farming_related": true.
+- IF NON-PLANT OR RANDOM IMAGE:
+  Any photo of:
+  - Humans, faces, selfies, hands, legs, clothes, shoes, personal photos
+  - Animals, birds, pets (cat, dog, parrot, wildlife, livestock without plant focus)
+  - Vehicles, cars, bikes, tractors on road, machinery
+  - Rooms, furniture, walls, floor, buildings, indoor scenes
+  - Electronics, screens, mobile phones, laptops, keyboards, gadgets
+  - Documents, paper, screenshots, receipts, books, food dishes
+  - Abstract graphics, textures, drawings, anime, toys, non-crop items
+  -> YOU MUST SET:
+     "is_farming_related": false,
+     "is_plant_present": false,
+     "detected_object": "<exact object name, e.g. cat, car, human face, chair, laptop>",
+     "refusal_reason_roman_urdu": "Yeh tasveer kisi fasal ya paudhay ki nahi hai balkay yeh (<detected_object>) ki tasveer hai. Kisan Dost sirf zaraat aur kheti baari se mutalliq poudon ki tashkhees karta hai. Barah-e-karam fasal ke mutasira pattay ki saaf tasveer dein.",
+     "refusal_reason_urdu": "یہ تصویر کسی زرعی فصل یا پودے کی نہیں ہے۔ یہ تصویر (<detected_object>) کی ہے۔ کسان دوست صرف زراعت اور کھیتی باڑی سے متعلق پودوں اور پتوں کی تشخیص کرتا ہے۔ برائے مہربانی فصل کے پتے یا کیڑے کی تصویر اپلوڈ کریں۔",
+     "refusal_reason_en": "This image does not contain an agricultural plant or crop; it appears to be a <detected_object>. Kisan Dost only inspects agricultural crops and plant leaves. Please upload a clear photo of an affected leaf or plant."
+  DO NOT GUESS OR IDENTIFY ANY DISEASE. Leave disease_name as null or empty.
+
+- ONLY IF an agricultural plant/crop/leaf is genuinely present:
+  Set "is_farming_related": true,
+  Set "is_plant_present": true,
+  Set "detected_object": "Crop Leaf / Plant",
   Inspect leaf lesions, discoloration, pest infestation (e.g. whitefly nymphs, aphids, rust pustules, blight patches).
   ${cropHint ? `Note: The farmer's field crop is indicated as ${cropHint}. Verify if the image matches this or another crop.` : ''}
   
@@ -77,6 +94,8 @@ First evaluate: Is this photograph genuinely related to farming, agricultural cr
 Format your response strictly as valid JSON with this exact structure:
 {
   "is_farming_related": true,
+  "is_plant_present": true,
+  "detected_object": "Wheat Leaf",
   "refusal_reason_roman_urdu": null,
   "refusal_reason_urdu": null,
   "refusal_reason_en": null,
@@ -96,7 +115,7 @@ Format your response strictly as valid JSON with this exact structure:
 }
 `;
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b'];
+  const models = ['gemini-2.5-flash', 'gemini-3.7-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let lastError: any = null;
 
   for (const model of models) {
@@ -142,11 +161,13 @@ Format your response strictly as valid JSON with this exact structure:
 
       const parsed: GeminiDiagnosisResponse = JSON.parse(rawText);
 
-      // 1. Guardrail Check: Non-farming picture rejection
-      if (!parsed.is_farming_related) {
+      // 1. Guardrail Check: Non-farming picture rejection or non-plant image
+      if (!parsed.is_farming_related || parsed.is_plant_present === false) {
+        const detectedObj = parsed.detected_object || 'Non-plant item';
         return {
           isRefused: true,
-          refusalMessage: parsed.refusal_reason_roman_urdu || parsed.refusal_reason_en || 'Non-agricultural image detected.',
+          detectedObject: detectedObj,
+          refusalMessage: parsed.refusal_reason_roman_urdu || parsed.refusal_reason_urdu || parsed.refusal_reason_en || `Yeh tasveer kisi fasal ya paudhay ki nahi hai balkay (${detectedObj}) ki tasveer hai. Kisan Dost sirf zaraat aur kheti baari se mutalliq poudon ki tashkhees karta hai. Barah-e-karam fasal ke mutasira pattay ki saaf tasveer dein.`,
           raw: parsed
         };
       }
@@ -258,7 +279,7 @@ Format response strictly as valid JSON with this exact structure:
 }
 `;
 
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-8b'];
+  const models = ['gemini-2.5-flash', 'gemini-3.7-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let lastError: any = null;
 
   for (const model of models) {

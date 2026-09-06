@@ -15,6 +15,7 @@ import {
   IrrigationSchedule,
   DecisionReceipt
 } from './types';
+import { diagnoseImageWithGemini } from './geminiClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://kisan-dost.onrender.com/api';
 
@@ -420,6 +421,67 @@ export const apiClient = {
         evidence: []
       }
     );
+  },
+
+  // 7b. Multimodal Image Diagnosis with Strict Plant vs Non-Plant Rejection
+  async diagnoseImage(
+    base64DataUrl: string,
+    cropHint?: string
+  ): Promise<{
+    result?: DiseaseDiagnosticResult;
+    isRefused?: boolean;
+    refusalMessage?: string;
+    detectedObject?: string;
+    error?: string;
+  }> {
+    try {
+      const resp = await fetch(`${API_BASE}/tools/diagnose-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_base64: base64DataUrl,
+          crop_hint: cropHint || 'General Crop'
+        })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.is_refused) {
+          return {
+            isRefused: true,
+            refusalMessage: data.refusal_message,
+            detectedObject: data.detected_object
+          };
+        }
+        if (data.success && data.result) {
+          return {
+            result: data.result,
+            isRefused: false,
+            detectedObject: data.detected_object
+          };
+        }
+        if (!data.success && data.error) {
+          console.warn('Backend image diagnosis failed:', data.error);
+        }
+      }
+    } catch (netErr) {
+      console.warn('Backend diagnose-image network error, trying fallback:', netErr);
+    }
+
+    // Direct Gemini fallback if VITE_GEMINI_API_KEY is configured in env
+    try {
+      const geminiRes = await diagnoseImageWithGemini(base64DataUrl, cropHint);
+      return {
+        result: geminiRes.result,
+        isRefused: geminiRes.isRefused,
+        refusalMessage: geminiRes.refusalMessage,
+        detectedObject: geminiRes.detectedObject
+      };
+    } catch (err: any) {
+      return {
+        error: err?.message || 'Diagnose failed'
+      };
+    }
   },
 
   // 8. Irrigation Schedule

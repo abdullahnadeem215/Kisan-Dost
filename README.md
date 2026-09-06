@@ -80,10 +80,11 @@ Conversational Natural Output + Embedded Dashboard Stats & Interactive Tool Card
 - **Natural Language "Digital Dost" Demeanor**: Speaks warmly and respectfully, addressing the farmer by name (*"وعلیکم السلام چوہدری احمد صاحب!"*). Routine queries receive natural answers with embedded **dashboard stat boxes** (Rate, Trend, Stage, Risk), expanding full interactive tools on demand.
 
 ### 2. 🔬 Gemini Multimodal Vision with Agricultural Domain Guardrail
-- **Files**: `frontend/src/api/geminiClient.ts`, `frontend/src/components/tools/DiseaseDoctor.tsx`, `app/integrations/gemini_client.py`
-- **Vision Engine**: High-resolution leaf, crop, and insect pest diagnosis using Google's Gemini Vision (`gemini-1.5-flash`, `gemini-2.0-flash`).
-- **Strict Agricultural Guardrail**: The model inspects the image first: non-agricultural pictures (humans, selfies, cars, pets, electronic devices, documents, rooms) are **strictly blocked**, triggering a bilingual refusal alert:
-  > *"یہ تصویر کسی فصل یا پودے کی نہیں ہے۔ کسان دوست صرف زراعت اور کھیتی باڑی سے متعلق پودوں اور پتوں کی تشخیص کرتا ہے۔ برائے مہربانی فصل کے پتے یا کیڑے کی تصویر اپلوڈ کریں۔"*
+- **Files**: `app/api/routes/tools.py`, `frontend/src/api/client.ts`, `frontend/src/api/geminiClient.ts`, `frontend/src/components/tools/DiseaseDoctor.tsx`
+- **Vision Engine**: High-resolution leaf, crop, and insect pest diagnosis using Google's latest Gemini Multimodal Vision models (`gemini-2.5-flash`, `gemini-3.7-flash` with cascade fallback to `gemini-2.0-flash` / `gemini-1.5-flash`).
+- **Strict Agricultural Plant Guardrail**: The vision inspector performs explicit subject classification first. Non-agricultural pictures (humans, faces, selfies, animals, pets, cars, furniture, electronics, documents, rooms) are **strictly rejected**, identifying the detected object and returning a clear bilingual refusal:
+  > *"یہ تصویر کسی فصل یا پودے کی نہیں ہے بلکہ (<detected_object>) کی ہے۔ کسان دوست صرف زراعت اور کھیتی باڑی سے متعلق پودوں اور پتوں کی تشخیص کرتا ہے۔ برائے مہربانی فصل کے متاثرہ پتے یا کیڑے کی تصویر اپلوڈ کریں۔"*
+- **Zero Frontend API Key Exposure**: All vision inference is routed through the secure backend endpoint (`POST /api/tools/diagnose-image`), eliminating any exposed API keys or key input prompts on the frontend dashboard.
 - **DPP Registry Grounding**: Prescriptions strictly match the **Department of Plant Protection (DPP) Pakistan** official registry (e.g. Nativo 75 WG @ 65g/acre, Tilt 250 EC @ 200ml/acre). Unregistered chemicals or off-label dosages are automatically blocked with `UNVERIFIED` status.
 
 ### 3. 🔮 Farm Decision Simulator (What-If Engine)

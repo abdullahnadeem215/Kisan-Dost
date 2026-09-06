@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     groq_model: str = "llama-3.3-70b-versatile"
     gemini_api_key: Optional[str] = None
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.5-flash"
     open_meteo_base_url: str = "https://api.open-meteo.com/v1"
     amis_api_url: str = "https://amis.pk/api"
 

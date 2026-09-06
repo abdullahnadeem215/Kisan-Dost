@@ -3,12 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useFarm } from '../../context/FarmContext';
 import { DiseaseDiagnosticResult, DecisionReceipt } from '../../api/types';
 import { apiClient } from '../../api/client';
-import {
-  diagnoseImageWithGemini,
-  diagnoseSymptomsWithGemini,
-  getStoredGeminiApiKey,
-  setStoredGeminiApiKey
-} from '../../api/geminiClient';
+import { diagnoseSymptomsWithGemini } from '../../api/geminiClient';
 import { GroundingBadge } from '../common/GroundingBadge';
 import {
   Camera,
@@ -18,11 +13,8 @@ import {
   CheckCircle2,
   RefreshCw,
   BookmarkCheck,
-  Key,
   ShieldAlert,
   Sparkles,
-  EyeOff,
-  Eye,
   FileText,
   Sprout
 } from 'lucide-react';
@@ -36,18 +28,14 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
   const { profile, saveDecision, openReceiptModal } = useFarm();
 
   const [selectedCrop, setSelectedCrop] = useState<string>(profile.primary_crop || 'Wheat');
-  const [symptomText, setSymptomText] = useState<string>('Yellow pustules in linear stripes on leaf surface');
+  const [symptomText, setSymptomText] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [diagnostic, setDiagnostic] = useState<DiseaseDiagnosticResult | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'photo' | 'symptom'>('photo');
-
-  // Gemini 1.5 Flash Model & Farming Guardrail State
-  const [geminiApiKey, setGeminiKey] = useState<string>(getStoredGeminiApiKey());
-  const [tempApiKeyInput, setTempApiKeyInput] = useState<string>(getStoredGeminiApiKey());
-  const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
-  const [showKeyText, setShowKeyText] = useState<boolean>(false);
   const [refusalMessage, setRefusalMessage] = useState<string | null>(null);
+  const [detectedObject, setDetectedObject] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scanEngine, setScanEngine] = useState<'gemini' | 'narc'>('gemini');
 
   const popularCrops = [
@@ -59,72 +47,67 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
     { id: 'Sugarcane', label: 'کماد (Sugarcane)' },
   ];
 
-  const handleSaveApiKey = () => {
-    const trimmed = tempApiKeyInput.trim();
-    setStoredGeminiApiKey(trimmed);
-    setGeminiKey(trimmed);
-    setIsKeyModalOpen(false);
-    if (imagePreview) {
-      runDiagnosis(imagePreview, trimmed);
-    }
-  };
-
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setRefusalMessage(null);
+      setDetectedObject(null);
+      setErrorMessage(null);
       setDiagnostic(null);
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Url = reader.result as string;
         setImagePreview(base64Url);
-        if (!geminiApiKey.trim()) {
-          setIsKeyModalOpen(true);
-        } else {
-          runDiagnosis(base64Url);
-        }
+        runDiagnosis(base64Url);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const runDiagnosis = async (base64Url?: string, explicitKey?: string) => {
+  const runDiagnosis = async (base64Url?: string) => {
     const imgData = base64Url || imagePreview;
-    const keyToUse = (explicitKey || geminiApiKey).trim();
     setIsScanning(true);
     setRefusalMessage(null);
+    setDetectedObject(null);
+    setErrorMessage(null);
 
     try {
-      // 1. If photo is present, run Gemini 1.5 Flash Multimodal Vision
-      if (imgData) {
-        if (!keyToUse) {
-          setIsKeyModalOpen(true);
-          setIsScanning(false);
-          return;
-        }
+      // 1. If photo scan mode and image is present
+      if (activeTab === 'photo' && imgData) {
+        const res = await apiClient.diagnoseImage(imgData, selectedCrop);
 
-        const geminiRes = await diagnoseImageWithGemini(imgData, selectedCrop, keyToUse);
-
-        if (geminiRes.isRefused) {
+        if (res.isRefused) {
           setRefusalMessage(
-            geminiRes.refusalMessage ||
-              'Yeh tasveer kisi fasal ya khet ki nahi hai. Barah-e-karam sirf mutasira pattay ya paudhay ki tasveer dein.'
+            res.refusalMessage ||
+            `Yeh tasveer kisi fasal ya paudhay ki nahi hai balkay (${res.detectedObject || 'non-plant'}) ki tasveer hai. Barah-e-karam fasal ke mutasira pattay ki saaf tasveer dein.`
           );
+          setDetectedObject(res.detectedObject || 'Non-plant object');
           setDiagnostic(null);
           return;
         }
 
-        if (geminiRes.result) {
-          setDiagnostic(geminiRes.result);
+        if (res.result) {
+          setDiagnostic(res.result);
+          setDetectedObject(res.detectedObject || 'Plant Leaf');
           setScanEngine('gemini');
+          return;
+        }
+
+        if (res.error) {
+          setErrorMessage(
+            res.error.includes('key') || res.error === 'MISSING_KEY'
+              ? 'Gemini Vision AI is analyzing with server credentials. Please ensure GEMINI_API_KEY is configured on the backend.'
+              : `Inference failed: ${res.error}. Please try another photo.`
+          );
+          setDiagnostic(null);
           return;
         }
       }
 
-      // 2. If symptom text with Gemini key, use Gemini 1.5 Flash Pathology model
-      if (keyToUse && symptomText.trim()) {
+      // 2. If symptom text mode
+      if (activeTab === 'symptom' && symptomText.trim()) {
         try {
-          const geminiRes = await diagnoseSymptomsWithGemini(selectedCrop, symptomText, keyToUse);
+          const geminiRes = await diagnoseSymptomsWithGemini(selectedCrop, symptomText);
           if (geminiRes.isRefused) {
             setRefusalMessage(geminiRes.refusalMessage || 'Yeh sawal zarai bimari se mutalliq nahi hai.');
             setDiagnostic(null);
@@ -138,26 +121,15 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
         } catch (symErr) {
           console.warn('Gemini symptom diagnosis fallback to local:', symErr);
         }
-      }
 
-      // 3. Fallback to local verified classifier
-      await new Promise(r => setTimeout(r, 500));
-      const res = await apiClient.diagnoseDisease(selectedCrop, symptomText);
-      setDiagnostic(res);
-      setScanEngine('narc');
+        const res = await apiClient.diagnoseDisease(selectedCrop, symptomText);
+        setDiagnostic(res);
+        setScanEngine('narc');
+        return;
+      }
     } catch (err: any) {
       console.warn('Diagnosis error:', err);
-      if (err?.message === 'MISSING_KEY') {
-        setIsKeyModalOpen(true);
-      } else {
-        try {
-          const res = await apiClient.diagnoseDisease(selectedCrop, symptomText);
-          setDiagnostic(res);
-          setScanEngine('narc');
-        } catch (fallbackErr) {
-          console.error('Fallback error:', fallbackErr);
-        }
-      }
+      setErrorMessage('Diagnosis could not be completed. Please try again with a clear photo.');
     } finally {
       setIsScanning(false);
     }
@@ -196,35 +168,25 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-4 w-full py-1">
-      {/* Top Header with Gemini Flash Model Badge & Key Config */}
+      {/* Top Header with Gemini Flash Vision Model Badge */}
       <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-earth-border/60">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-ajrak-black flex items-center gap-2">
             <Camera className="w-5 h-5 text-ochre-alert" />
             <span>{t.diseaseTitle}</span>
-            <span className="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold px-2 py-0.5 rounded-full flex items-center gap-1">
+            <span className="text-[10px] bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
               <Sparkles className="w-3 h-3 text-emerald-700" />
-              <span>Gemini 1.5 Flash AI</span>
+              <span>Gemini 2.5 / 3.7 Flash AI</span>
             </span>
           </h2>
           <p className="text-xs text-earth-muted mt-0.5">
-            {t.diseaseSubtitle} • Powered by Google Gemini Flash Multimodal Vision
+            {t.diseaseSubtitle} • Powered by Google Gemini Multimodal Vision with strict plant guardrails
           </p>
         </div>
 
-        {/* Gemini Key Config Button */}
-        <button
-          onClick={() => setIsKeyModalOpen(true)}
-          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
-            geminiApiKey
-              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
-              : 'bg-wheat-tint text-wheat-dark border-wheat-border hover:bg-wheat-tint/80'
-          }`}
-          title="Configure Google Gemini API Key"
-        >
-          <Key className="w-3.5 h-3.5" />
-          <span>{geminiApiKey ? 'Gemini Flash Active' : 'Enter Gemini API Key'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <GroundingBadge isLive={true} state="verified" size="sm" label="DPP PAKISTAN VERIFIED" />
+        </div>
       </div>
 
       {/* Crop Selector Chips */}
@@ -282,10 +244,10 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
                   <div className="relative w-48 h-48 sm:w-56 sm:h-56 mx-auto rounded-xl overflow-hidden border-2 border-earth-border shadow-xs">
                     <img src={imagePreview} alt="Leaf preview" className="w-full h-full object-cover" />
                     {isScanning && (
-                      <div className="absolute inset-0 bg-ajrak-black/65 backdrop-blur-xs flex flex-col items-center justify-center text-white">
+                      <div className="absolute inset-0 bg-ajrak-black/75 backdrop-blur-xs flex flex-col items-center justify-center text-white">
                         <RefreshCw className="w-8 h-8 text-wheat-gold animate-spin mb-2" />
-                        <span className="text-xs font-semibold px-2">
-                          Gemini 1.5 Flash Pathology Analysis...
+                        <span className="text-xs font-semibold px-2 text-center">
+                          Gemini 2.5 / 3.7 Flash Pathology Analysis...
                         </span>
                       </div>
                     )}
@@ -315,7 +277,7 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
                   <div>
                     <h3 className="font-bold text-sm text-ajrak-black">{t.uploadPhotoPrompt}</h3>
                     <p className="text-xs text-earth-muted mt-0.5">
-                      Upload a plant leaf, stem, or pest photo (Strict agricultural pictures only)
+                      Upload a plant leaf, stem, or crop photo (Strict agricultural pictures only)
                     </p>
                   </div>
                   <label className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-wheat-gold hover:bg-wheat-dark text-white text-xs font-bold shadow-xs cursor-pointer active:scale-95 transition-all">
@@ -324,7 +286,7 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
                     <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                   </label>
                   <p className="text-[10px] text-earth-muted">
-                    ✨ Diagnosed instantly by Gemini 1.5 Flash Vision
+                    ✨ Diagnosed instantly by Gemini 2.5 / 3.7 Flash Vision
                   </p>
                 </div>
               )}
@@ -364,33 +326,51 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
 
           {/* STRICT FARMING GUARDRAIL REFUSAL CARD */}
           {refusalMessage && (
-            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-4 space-y-2 shadow-xs animate-in fade-in duration-200">
+            <div className="bg-red-50 border-2 border-red-300 rounded-2xl p-4 space-y-2.5 shadow-xs animate-in fade-in duration-200">
               <div className="flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center text-red-600 shrink-0 mt-0.5">
-                  <ShieldAlert className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-red-100 border border-red-300 flex items-center justify-center text-red-600 shrink-0 mt-0.5">
+                  <ShieldAlert className="w-4.5 h-4.5" />
                 </div>
-                <div className="space-y-1">
-                  <h4 className="font-bold text-xs text-red-950 flex items-center gap-1.5">
-                    <span>غیر زرعی تصویر مسترد</span>
-                    <span className="text-[9px] bg-red-200 text-red-900 font-bold px-1.5 py-0.2 rounded">
-                      Farming Guardrail Block
-                    </span>
-                  </h4>
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex items-center justify-between flex-wrap gap-1">
+                    <h4 className="font-bold text-xs text-red-950 flex items-center gap-1.5">
+                      <span>غیر زرعی تصویر مسترد</span>
+                      <span className="text-[9px] bg-red-200 text-red-900 font-bold px-1.5 py-0.5 rounded">
+                        Farming Guardrail Block
+                      </span>
+                    </h4>
+                    {detectedObject && (
+                      <span className="text-[10px] bg-white border border-red-300 text-red-800 font-bold px-2 py-0.5 rounded-md">
+                        شناخت شدہ شے: {detectedObject}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-red-800 leading-relaxed font-medium">
                     {refusalMessage}
                   </p>
                   <p className="text-[10px] text-red-700/90 pt-0.5">
-                    💡 <strong>ہدایت:</strong> برائے مہربانی صرف کھیت کی فصل، پودے یا کیڑے کی تصویر اپلوڈ کریں۔
+                    💡 <strong>ہدایت:</strong> برائے مہربانی صرف کھیت کی فصل، پودے یا کیڑے کی تصویر اپلوڈ کریں۔ کسان دوست کسی غیر زرعی تصویر (جیسے چہرہ، گاڑی، فرنیچر، دستاویز) کی تشخیص نہیں کرتا۔
                   </p>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-red-200 flex justify-end">
-                <label className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer shadow-2xs">
+                <label className="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer shadow-2xs">
                   Upload Farming Leaf Photo
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               </div>
+            </div>
+          )}
+
+          {/* INFERENCE / CONFIG ERROR CARD */}
+          {errorMessage && (
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-900 space-y-1 shadow-xs animate-in fade-in duration-200">
+              <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                <AlertTriangle className="w-4 h-4 text-amber-700" />
+                <span>تشخیص میں مسئلہ</span>
+              </p>
+              <p className="font-medium text-amber-800 leading-relaxed">{errorMessage}</p>
             </div>
           )}
         </div>
@@ -420,7 +400,7 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                         <Sparkles className="w-2.5 h-2.5 text-emerald-800" />
-                        <span>Gemini 1.5 Flash</span>
+                        <span>Gemini 2.5 / 3.7 Flash</span>
                       </span>
                       <GroundingBadge isLive={true} state="verified" size="sm" label="DPP VERIFIED" />
                     </div>
@@ -497,72 +477,6 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
           </div>
         )}
       </div>
-
-      {/* GEMINI API KEY MODAL */}
-      {isKeyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-ajrak-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-earth-border p-5 w-full max-w-md space-y-4 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-wheat-tint text-wheat-gold flex items-center justify-center">
-                  <Key className="w-4 h-4" />
-                </div>
-                <h3 className="font-bold text-sm text-ajrak-black">Gemini Vision API Key</h3>
-              </div>
-              <button
-                onClick={() => setIsKeyModalOpen(false)}
-                className="text-earth-muted hover:text-earth-dark text-sm p-1"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-earth-muted leading-relaxed">
-              Google Gemini Vision Multimodal AI enables instant leaf disease and pest diagnosis from photographs, with strict agricultural guardrails rejecting non-farming pictures.
-            </p>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-earth-dark block">
-                Enter your Google AI Studio Gemini API Key:
-              </label>
-              <div className="relative">
-                <input
-                  type={showKeyText ? 'text' : 'password'}
-                  value={tempApiKeyInput}
-                  onChange={e => setTempApiKeyInput(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full bg-earth-surface border border-earth-border rounded-xl px-3 py-2 text-xs font-mono text-ajrak-black focus:border-wheat-gold outline-hidden pr-8"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowKeyText(!showKeyText)}
-                  className="absolute right-2.5 top-2.5 text-earth-muted hover:text-earth-dark"
-                >
-                  {showKeyText ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <span className="text-[10px] text-earth-muted block">
-                Saved securely in your local browser storage.
-              </span>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-earth-border">
-              <button
-                onClick={() => setIsKeyModalOpen(false)}
-                className="px-3.5 py-2 rounded-xl border border-earth-border text-xs font-medium text-earth-dark hover:bg-earth-surface"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveApiKey}
-                className="px-4 py-2 rounded-xl bg-wheat-gold hover:bg-wheat-dark text-white text-xs font-bold shadow-xs"
-              >
-                Save API Key
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

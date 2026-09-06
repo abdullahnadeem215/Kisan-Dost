@@ -5,6 +5,7 @@ Tests all REST endpoints using FastAPI TestClient.
 import pytest
 from fastapi.testclient import TestClient
 from app.api.app import app
+from config.settings import settings
 
 client = TestClient(app)
 
@@ -250,3 +251,142 @@ def test_demo_scenarios_endpoints():
     r_off = client.post("/api/demo/run/offline")
     assert r_off.status_code == 200
     assert r_off.json()["status"] == "CACHED"
+
+
+def test_diagnose_image_endpoint_schema():
+    # Test diagnose-image endpoint accepts valid payload and reports clean status without fake disease
+    payload = {
+        "image_base64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP...",
+        "crop_hint": "Wheat"
+    }
+    resp = client.post("/api/tools/diagnose-image", json=payload)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "success" in data
+    assert "is_refused" in data
+    # When no key is in test env, it should report clean missing key without crashing or returning fake disease
+    if not data["success"]:
+        assert "GEMINI_API_KEY" in data["error"] or "Gemini" in data.get("message", "")
+        assert data.get("result") is None
+
+
+@pytest.mark.asyncio
+async def test_diagnose_image_non_plant_rejection():
+    from app.api.routes.tools import api_diagnose_image, DiagnoseImageRequest
+    import json
+    from unittest.mock import patch, MagicMock
+
+    fake_gemini_json = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "text": json.dumps({
+                                "is_farming_related": False,
+                                "is_plant_present": False,
+                                "detected_object": "Domestic Cat",
+                                "refusal_reason_roman_urdu": "Yeh tasveer kisi fasal ya paudhay ki nahi hai balkay Domestic Cat ki hai.",
+                                "refusal_reason_urdu": "یہ تصویر کسی فصل یا پودے کی نہیں ہے۔",
+                                "refusal_reason_en": "This image shows a domestic cat, not an agricultural plant."
+                            })
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = fake_gemini_json
+
+    class MockAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+        async def post(self, url, json=None):
+            return mock_resp
+
+    with patch("app.api.routes.tools.httpx.AsyncClient", MockAsyncClient):
+        with patch.object(settings, "gemini_api_key", "test-mock-key"):
+            req = DiagnoseImageRequest(
+                image_base64="data:image/jpeg;base64,mockrandomcatimage",
+                crop_hint="Wheat"
+            )
+            data = await api_diagnose_image(req)
+            assert data["success"] is True
+            assert data["is_refused"] is True
+            assert data["detected_object"] == "Domestic Cat"
+            assert data["result"] is None
+            assert "Domestic Cat" in data["refusal_message"]
+
+
+@pytest.mark.asyncio
+async def test_diagnose_image_plant_confirmed():
+    from app.api.routes.tools import api_diagnose_image, DiagnoseImageRequest
+    import json
+    from unittest.mock import patch, MagicMock
+
+    fake_plant_json = {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [
+                        {
+                            "text": json.dumps({
+                                "is_farming_related": True,
+                                "is_plant_present": True,
+                                "detected_object": "Wheat Leaf",
+                                "crop_name": "Wheat",
+                                "disease_name": "Yellow Rust",
+                                "causal_agent": "Puccinia striiformis",
+                                "match_confidence": 0.94,
+                                "symptoms": ["Yellow pustules in linear stripes"],
+                                "favorable_conditions": "Cool and humid",
+                                "preventative_measures": ["Resistant seed Akbar-19"],
+                                "organic_control": "Neem extract",
+                                "chemical_control": "Tilt 250 EC @ 200ml/acre",
+                                "dosage_per_acre": "200ml/acre",
+                                "diagnostic_summary_roman_urdu": "Gandum ke pattay par Yellow Rust tashkhees hui hai."
+                            })
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = fake_plant_json
+
+    class MockAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *args):
+            pass
+        async def post(self, url, json=None):
+            return mock_resp
+
+    with patch("app.api.routes.tools.httpx.AsyncClient", MockAsyncClient):
+        with patch.object(settings, "gemini_api_key", "test-mock-key"):
+            req = DiagnoseImageRequest(
+                image_base64="data:image/jpeg;base64,mockwheatleaf",
+                crop_hint="Wheat"
+            )
+            data = await api_diagnose_image(req)
+            assert data["success"] is True
+            assert data["is_refused"] is False
+            assert data["detected_object"] == "Wheat Leaf"
+            assert data["result"] is not None
+            assert data["result"]["disease_name"] == "Yellow Rust"
+            assert data["result"]["crop_name"] == "Wheat"
+            assert data["result"]["status"] == "CONFIRMED"
+
+
