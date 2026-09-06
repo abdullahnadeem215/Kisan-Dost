@@ -12,8 +12,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenPassport }) => {
   const { profile, isRefreshing, refreshFarmData } = useFarm();
 
   return (
-    <header className="sticky top-0 z-30 bg-earth-ground/95 backdrop-blur-md border-b border-earth-border px-4 py-3">
-      <div className="max-w-xl mx-auto flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-30 bg-earth-ground/95 backdrop-blur-md border-b border-earth-border px-3 sm:px-6 lg:px-8 py-2.5">
+      <div className="w-full max-w-[1600px] mx-auto flex items-center justify-between gap-4">
         {/* Logo & Identity */}
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-wheat-tint border border-wheat-border flex items-center justify-center text-xl shadow-xs">

@@ -27,8 +27,8 @@ export const App: React.FC = () => {
       {/* Sticky Top Header */}
       <Header onOpenPassport={() => setIsPassportOpen(true)} />
 
-      {/* Main Conversational Farm Dashboard: Full-Height, Zero Overlap */}
-      <main className="flex-1 w-full max-w-2xl mx-auto flex flex-col min-h-0 overflow-hidden px-2 sm:px-4 py-2">
+      {/* Main Conversational Farm Dashboard: Full-Height, Full-Screen Responsive */}
+      <main className="flex-1 w-full max-w-[1600px] mx-auto flex flex-col min-h-0 overflow-hidden px-2 sm:px-4 lg:px-6 py-2 sm:py-3">
         <ZaraiChatBot />
       </main>
 
