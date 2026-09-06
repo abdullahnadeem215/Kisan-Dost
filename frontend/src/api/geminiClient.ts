@@ -314,6 +314,8 @@ Format response strictly as valid JSON with this exact structure:
           crop_name: parsed.crop_name || cropName,
           confidence: parsed.match_confidence || 0.90
         }],
+        requires_clearer_image: (parsed.match_confidence || 0.90) < 0.70,
+        image_request_message: (parsed.match_confidence || 0.90) < 0.70 ? 'Barah-e-karam mutasira pattay ki saaf tasveer upload karein.' : null,
         diagnostic_summary: parsed.diagnostic_summary_roman_urdu || parsed.diagnostic_summary_en || `${parsed.disease_name} diagnosed for ${parsed.crop_name}.`,
         evidence: [{
           source_id: 'GEMINI_FLASH_AI',
