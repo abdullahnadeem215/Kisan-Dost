@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html[dir="rtl"],
+  .font-urdu {
+    font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaliq', serif;
+    line-height: 2.2 !important;
+  }
+
+  /* Outdoor high contrast selection */
+  ::selection {
+    background-color: #C68A1B;
+    color: #FFFFFF;
+  }
+}
+
+/* Tabular figures for rapid number scanning (mandi rates, maunds, temperatures) */
+.num-tabular {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Subtle soil texture / field divider utility */
+.field-texture {
+  background-image: radial-gradient(#D5CCBA 0.75px, transparent 0.75px);
+  background-size: 12px 12px;
+}
+
+/* Custom subtle scrollbar in earth tone */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #EDE7DA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5CCBA;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C68A1B;
+}
+
+/* Focus rings with wheat gold */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid #C68A1B;
+  outline-offset: 2px;
+}

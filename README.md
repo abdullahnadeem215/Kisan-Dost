@@ -323,7 +323,7 @@ kisan-dost/
 
 ---
 
-## 🎤 9. VIVA EXAMINER Q&A CHEAT-SHEET
+## 🎤 9. Why my Kisan Dost?
 
 **Q: Why a Multi-Agent architecture instead of a single LLM prompt?**  
 > *"Because Pakistani farm decisions span multiple specialized domains — pathology, market economics, hydrology, soil agronomy, and government schemes. Separating agents creates clear single responsibilities, while deterministic tools and services prevent cross-domain hallucination."*
