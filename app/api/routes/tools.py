@@ -203,37 +203,48 @@ async def api_diagnose_image(req: DiagnoseImageRequest):
         "}\n"
     )
 
-    models = ["gemini-2.5-flash", "gemini-3.7-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    models = [
+        "gemini-2.5-flash",
+        "gemini-3.7-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini-1.5-pro"
+    ]
+    api_versions = ["v1beta", "v1"]
     last_err = None
 
     async with httpx.AsyncClient(timeout=25.0) as client:
-        for model in models:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-                payload = {
-                    "contents": [
-                        {
-                            "role": "user",
-                            "parts": [
-                                {"text": system_prompt},
-                                {
-                                    "inline_data": {
-                                        "mime_type": mime_type,
-                                        "data": base64_payload
+        for ver in api_versions:
+            for model in models:
+                try:
+                    url = f"https://generativelanguage.googleapis.com/{ver}/models/{model}:generateContent?key={api_key}"
+                    payload = {
+                        "contents": [
+                            {
+                                "role": "user",
+                                "parts": [
+                                    {"text": system_prompt},
+                                    {
+                                        "inline_data": {
+                                            "mime_type": mime_type,
+                                            "data": base64_payload
+                                        }
                                     }
-                                }
-                            ]
+                                ]
+                            }
+                        ],
+                        "generationConfig": {
+                            "temperature": 0.15,
+                            "responseMimeType": "application/json"
                         }
-                    ],
-                    "generationConfig": {
-                        "temperature": 0.15,
-                        "responseMimeType": "application/json"
                     }
-                }
-                resp = await client.post(url, json=payload)
-                if resp.status_code != 200:
-                    last_err = f"Model {model} returned status {resp.status_code}"
-                    continue
+                    resp = await client.post(url, json=payload)
+                    if resp.status_code != 200:
+                        last_err = f"Model {model} on {ver} returned status {resp.status_code}"
+                        continue
 
                 data = resp.json()
                 raw_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")

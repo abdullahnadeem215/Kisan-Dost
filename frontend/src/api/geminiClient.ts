@@ -28,11 +28,84 @@ export interface GeminiDiagnosisResponse {
 }
 
 export function getStoredGeminiApiKey(): string {
-  return import.meta.env.VITE_GEMINI_API_KEY || '';
+  return (
+    import.meta.env.VITE_GEMINI_API_KEY ||
+    (typeof window !== 'undefined' ? localStorage.getItem('gemini_api_key') || '' : '')
+  );
 }
 
 export function setStoredGeminiApiKey(_key: string): void {
   // Deprecated: No API key stored in browser storage
+}
+
+interface EndpointCandidate {
+  version: 'v1beta' | 'v1';
+  model: string;
+}
+
+const FALLBACK_CANDIDATES: EndpointCandidate[] = [
+  { version: 'v1beta', model: 'gemini-2.5-flash' },
+  { version: 'v1beta', model: 'gemini-3.7-flash' },
+  { version: 'v1beta', model: 'gemini-2.0-flash' },
+  { version: 'v1beta', model: 'gemini-1.5-flash' },
+  { version: 'v1', model: 'gemini-1.5-flash' },
+  { version: 'v1beta', model: 'gemini-1.5-flash-latest' },
+  { version: 'v1beta', model: 'gemini-2.0-flash-lite' },
+  { version: 'v1beta', model: 'gemini-2.5-flash-lite' },
+  { version: 'v1beta', model: 'gemini-1.5-pro' },
+  { version: 'v1', model: 'gemini-2.0-flash' }
+];
+
+async function resolveWorkingCandidates(apiKey: string): Promise<EndpointCandidate[]> {
+  const versions: ('v1beta' | 'v1')[] = ['v1beta', 'v1'];
+  const candidates: EndpointCandidate[] = [];
+
+  for (const ver of versions) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/${ver}/models?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.models)) {
+          const available: string[] = data.models
+            .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m: any) => m.name.replace(/^models\//, ''));
+
+          const priority = [
+            'gemini-2.5-flash',
+            'gemini-3.7-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-2.0-flash-lite',
+            'gemini-2.5-flash-lite',
+            'gemini-1.5-pro'
+          ];
+
+          for (const p of priority) {
+            if (available.includes(p)) {
+              candidates.push({ version: ver, model: p });
+            }
+          }
+          for (const a of available) {
+            if (a.includes('flash') && !candidates.some(c => c.version === ver && c.model === a)) {
+              candidates.push({ version: ver, model: a });
+            }
+          }
+        }
+      }
+    } catch {
+      // Continue to next version
+    }
+  }
+
+  return candidates.length > 0 ? candidates : FALLBACK_CANDIDATES;
 }
 
 export async function diagnoseImageWithGemini(
@@ -115,15 +188,18 @@ Format your response strictly as valid JSON with this exact structure:
 }
 `;
 
-  const models = ['gemini-2.5-flash', 'gemini-3.7-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const candidates = await resolveWorkingCandidates(apiKey);
   let lastError: any = null;
 
-  for (const model of models) {
+  for (const { version, model } of candidates) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: [
             {
@@ -148,7 +224,7 @@ Format your response strictly as valid JSON with this exact structure:
 
       if (!response.ok) {
         const errText = await response.text();
-        console.warn(`Gemini model ${model} failed (${response.status}):`, errText);
+        console.warn(`Gemini model ${model} on ${version} failed (${response.status}):`, errText);
         lastError = new Error(`Gemini API Error: ${response.status}`);
         continue;
       }
@@ -279,15 +355,18 @@ Format response strictly as valid JSON with this exact structure:
 }
 `;
 
-  const models = ['gemini-2.5-flash', 'gemini-3.7-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const candidates = await resolveWorkingCandidates(apiKey);
   let lastError: any = null;
 
-  for (const model of models) {
+  for (const { version, model } of candidates) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.2, responseMimeType: 'application/json' }
@@ -296,7 +375,7 @@ Format response strictly as valid JSON with this exact structure:
 
       if (!response.ok) {
         const errText = await response.text();
-        console.warn(`Gemini model ${model} symptom diagnosis failed:`, errText);
+        console.warn(`Gemini model ${model} on ${version} symptom diagnosis failed (${response.status}):`, errText);
         lastError = new Error(`Gemini API Error: ${response.status}`);
         continue;
       }
@@ -340,7 +419,7 @@ Format response strictly as valid JSON with this exact structure:
         diagnostic_summary: parsed.diagnostic_summary_roman_urdu || parsed.diagnostic_summary_en || `${parsed.disease_name} diagnosed for ${parsed.crop_name}.`,
         evidence: [{
           source_id: 'GEMINI_FLASH_AI',
-          source_name: 'Google Gemini 1.5 Flash Agricultural Pathology Model',
+          source_name: 'Google Gemini Flash Agricultural Pathology Model',
           verification_state: 'verified',
           is_live: true,
           methodology_notes: 'Grounding via DPP Pakistan registered agrochemicals'

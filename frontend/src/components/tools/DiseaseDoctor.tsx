@@ -94,10 +94,11 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
         }
 
         if (res.error) {
+          const isMissingKey = res.error.includes('key') || res.error === 'MISSING_KEY';
           setErrorMessage(
-            res.error.includes('key') || res.error === 'MISSING_KEY'
-              ? 'Gemini Vision AI is analyzing with server credentials. Please ensure GEMINI_API_KEY is configured on the backend.'
-              : `Inference failed: ${res.error}. Please try another photo.`
+            isMissingKey
+              ? 'Gemini Vision سرور پر دستیاب نہیں ہے۔ براہ کرم علامات لکھ کر تشخیص (Symptom Tab) استعمال کریں یا سرور پر GEMINI_API_KEY سیٹ کریں۔'
+              : `تصویر کی پروسیسنگ مکمل نہ ہو سکی۔ برائے مہربانی پتے کی واضح تصویر منتخب کریں یا علامات کے ذریعے تشخیص کریں۔ (${res.error})`
           );
           setDiagnostic(null);
           return;
@@ -365,12 +366,32 @@ export const DiseaseDoctor: React.FC<DiseaseDoctorProps> = ({ onBack }) => {
 
           {/* INFERENCE / CONFIG ERROR CARD */}
           {errorMessage && (
-            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-900 space-y-1 shadow-xs animate-in fade-in duration-200">
-              <p className="font-bold flex items-center gap-1.5 text-amber-950">
-                <AlertTriangle className="w-4 h-4 text-amber-700" />
-                <span>تشخیص میں مسئلہ</span>
-              </p>
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3.5 text-xs text-amber-900 space-y-2 shadow-xs animate-in fade-in duration-200">
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-bold flex items-center gap-1.5 text-amber-950">
+                  <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>تشخیص میں مسئلہ (Diagnostic Issue)</span>
+                </p>
+                <button
+                  onClick={() => setErrorMessage(null)}
+                  className="text-[10px] text-amber-800 hover:text-amber-950 font-semibold underline cursor-pointer"
+                >
+                  بند کریں
+                </button>
+              </div>
               <p className="font-medium text-amber-800 leading-relaxed">{errorMessage}</p>
+              <div className="pt-1 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setActiveTab('symptom');
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-2xs cursor-pointer transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>علامات لکھ کر تشخیص کریں (Use Symptom Doctor)</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

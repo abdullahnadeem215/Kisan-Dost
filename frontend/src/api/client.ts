@@ -434,41 +434,50 @@ export const apiClient = {
     detectedObject?: string;
     error?: string;
   }> {
-    try {
-      const resp = await fetch(`${API_BASE}/tools/diagnose-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image_base64: base64DataUrl,
-          crop_hint: cropHint || 'General Crop'
-        })
-      });
+    const endpointsToTry = [
+      `${API_BASE}/tools/diagnose-image`,
+      ...(API_BASE.includes('onrender.com')
+        ? ['http://localhost:8000/api/tools/diagnose-image', 'http://127.0.0.1:8000/api/tools/diagnose-image']
+        : [])
+    ];
 
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.is_refused) {
-          return {
-            isRefused: true,
-            refusalMessage: data.refusal_message,
-            detectedObject: data.detected_object
-          };
+    for (const ep of endpointsToTry) {
+      try {
+        const resp = await fetch(ep, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_base64: base64DataUrl,
+            crop_hint: cropHint || 'General Crop'
+          })
+        });
+
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.is_refused) {
+            return {
+              isRefused: true,
+              refusalMessage: data.refusal_message,
+              detectedObject: data.detected_object
+            };
+          }
+          if (data.success && data.result) {
+            return {
+              result: data.result,
+              isRefused: false,
+              detectedObject: data.detected_object
+            };
+          }
+          if (!data.success && data.error) {
+            console.warn(`Backend endpoint ${ep} returned:`, data.error);
+          }
         }
-        if (data.success && data.result) {
-          return {
-            result: data.result,
-            isRefused: false,
-            detectedObject: data.detected_object
-          };
-        }
-        if (!data.success && data.error) {
-          console.warn('Backend image diagnosis failed:', data.error);
-        }
+      } catch (netErr) {
+        console.warn(`Backend endpoint ${ep} unreachable:`, netErr);
       }
-    } catch (netErr) {
-      console.warn('Backend diagnose-image network error, trying fallback:', netErr);
     }
 
-    // Direct Gemini fallback if VITE_GEMINI_API_KEY is configured in env
+    // Direct Gemini fallback if VITE_GEMINI_API_KEY is configured in env or browser storage
     try {
       const geminiRes = await diagnoseImageWithGemini(base64DataUrl, cropHint);
       return {
