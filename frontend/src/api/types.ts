@@ -102,6 +102,20 @@ export interface AdvisoryQueryResponse {
   advisory_roman_urdu: string;
   advisory_urdu: string;
   telemetry_steps: string[];
+  dashboard_metrics?: {
+    category: string;
+    title: string;
+    source: string;
+    verified: boolean;
+    metrics: Array<{
+      label: string;
+      value: string;
+      icon?: string;
+      subtext?: string;
+    }>;
+    interactive_tool?: 'mandi' | 'irrigation' | 'disease' | 'crop' | 'govt' | 'whatif' | 'brief' | 'receipt';
+    tool_button_label?: string;
+  };
 }
 
 export interface SimulationOption {

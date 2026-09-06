@@ -16,7 +16,7 @@ import {
   DecisionReceipt
 } from './types';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://kisan-dost.onrender.com/api';
 
 async function fetchWithFallback<T>(url: string, options: RequestInit, fallback: T): Promise<T> {
   try {
@@ -51,6 +51,8 @@ export const apiClient = {
         body: JSON.stringify({
           query,
           farmer_id: profile?.farmer_id || 'FARM-001',
+          farmer_name: profile?.name || 'Chaudhry Ahmad',
+          phone_number: profile?.phone_number || '0300-1234567',
           district: profile?.district || 'Multan',
           land_acres: profile?.total_land_acres || 5.0,
           soil_type: profile?.soil_type || 'Loam',

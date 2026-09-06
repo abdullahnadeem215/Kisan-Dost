@@ -8,8 +8,9 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://kisan-dost.onrender.com',
         changeOrigin: true,
+        secure: true,
       }
     }
   }
